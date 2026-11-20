@@ -158,19 +158,30 @@ class Factory:
         return self.db.scalar(select(User).where(User.email == "root@example.com"))
 
     def headers(self, user):
-        if user.id not in self._tokens:
+        """A bearer token, renewed when the test clock has moved past most of its lifetime."""
+        cached = self._tokens.get(user.id)
+        if cached is None or (clock.now() - cached[1]).total_seconds() > 45 * 60 or clock.now() < cached[1]:
             r = self.client.post("/api/v1/auth/token", json={"email": user.email, "password": PASSWORD})
             assert r.status_code == 200, r.text
-            self._tokens[user.id] = r.json()["access_token"]
-        return {"Authorization": f"Bearer {self._tokens[user.id]}"}
+            cached = (r.json()["access_token"], clock.now())
+            self._tokens[user.id] = cached
+        return {"Authorization": f"Bearer {cached[0]}"}
 
     def as_(self, user):
+        return Caller(self.client, lambda: self.headers(user))
+
+    def as_fixed(self, user):
+        """A caller holding one token that is never renewed (for revocation and expiry tests)."""
         return Caller(self.client, self.headers(user))
 
 
 class Caller:
     def __init__(self, client, headers):
-        self.client, self.h = client, headers
+        self.client, self._h = client, headers
+
+    @property
+    def h(self):
+        return self._h() if callable(self._h) else self._h
 
     def get(self, url, **kw):
         return self.client.get(url, headers={**self.h, **kw.pop("headers", {})}, **kw)

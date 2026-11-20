@@ -108,7 +108,7 @@ def iter_intervals(spec: CalendarSpec, start: datetime) -> Iterator[tuple[dateti
             s = max(s, start)
             if pending is None:
                 pending = (s, e)
-            elif s <= pending[1]:
+            elif s < pending[1]:  # overlap: merge so time is not counted twice (touching windows stay apart)
                 pending = (pending[0], max(pending[1], e))
             else:
                 yield pending

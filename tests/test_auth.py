@@ -78,7 +78,7 @@ def test_cookie_writes_need_csrf(f, client):
 
 def test_change_password_ends_other_sessions(f, client):
     u = f.member("Ann")
-    other = f.as_(u)  # a token session
+    other = f.as_fixed(u)  # a token session
     r = login(client, u.email)
     client.post("/api/v1/auth/change-password",
                 json={"current_password": PASSWORD, "new_password": "Another-good-pass"},
@@ -89,7 +89,7 @@ def test_change_password_ends_other_sessions(f, client):
 
 def test_reset_password_by_admin(f, client, root):
     u = f.member("Ann")
-    token_caller = f.as_(u)
+    token_caller = f.as_fixed(u)
     r = root.post(f"/api/v1/admin/users/{u.id}/reset-password")
     assert r.status_code == 200
     temp = r.json()["temporary_password"]
@@ -101,7 +101,7 @@ def test_reset_password_by_admin(f, client, root):
 
 def test_token_and_deactivation(f, client, root):
     u = f.member("Ann")
-    caller = f.as_(u)
+    caller = f.as_fixed(u)
     assert caller.get("/api/v1/me").status_code == 200
     assert root.patch(f"/api/v1/admin/users/{u.id}", json={"is_active": False}).status_code == 200
     assert caller.get("/api/v1/me").status_code == 401
@@ -110,7 +110,7 @@ def test_token_and_deactivation(f, client, root):
 
 def test_token_lifetime(f):
     u = f.member("Ann")
-    caller = f.as_(u)
+    caller = f.as_fixed(u)
     clock.advance(minutes=61)
     assert caller.get("/api/v1/me").status_code == 401
 
