@@ -96,6 +96,7 @@ def _mark_breach(db: Session, t: Ticket, tm: SlaTimer, at: datetime):
     from .tickets import add_event
     add_event(db, t, "sla_breached", None, t.status_code, t.status_code, visibility="INTERNAL",
               data={"step": tm.name, "position": tm.position, "due_at": at.isoformat()})
+    on_breach(db, t, tm)
     return True
 
 
@@ -267,8 +268,8 @@ def on_priority_change(db: Session, t: Ticket, old_priority_id: int) -> None:
 
 
 # ================================================================ manual actions (F6.7)
-def action_available(db: Session, t: Ticket, action: str) -> bool:
-    timers = current_timers(db, t)
+def action_available(db: Session, t: Ticket, action: str, timers: list | None = None) -> bool:
+    timers = current_timers(db, t) if timers is None else timers
     unfinished = [tm for tm in timers if tm.state in UNFINISHED]
     if action == "sla-pause":
         return bool(unfinished) and not t.manual_paused
@@ -430,14 +431,17 @@ def breach_sweep(db: Session) -> int:
         t = db.get(Ticket, tm.ticket_id)
         if _mark_breach(db, t, tm, tm.due_at):
             n += 1
-            on_breach(db, t, tm)
     return n
 
 
 def on_breach(db: Session, t: Ticket, tm: SlaTimer) -> None:
-    """Phase 4 attaches the breach alert here."""
-    hook = BREACH_HOOKS
-    for fn in hook:
+    """Hooks run when a breach is first recorded (Phase 4 attaches the SLA_BREACH alert)."""
+    if not BREACH_HOOKS:
+        try:  # make sure the alert hook is registered even when the worker modules were not loaded
+            from . import escalation  # noqa: F401
+        except ModuleNotFoundError:
+            pass
+    for fn in BREACH_HOOKS:
         fn(db, t, tm)
 
 

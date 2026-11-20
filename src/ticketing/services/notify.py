@@ -94,9 +94,12 @@ def notify(db: Session, ntype: str, ticket: Ticket, user_ids, actor_id: int | No
     if not users:
         return []
     ctx = context(db, ticket, extra)
-    rows = db.execute(select(NotificationTemplate, NotificationChannel).join(
-        NotificationChannel, NotificationChannel.id == NotificationTemplate.channel_id).where(
-        NotificationTemplate.notification_type == ntype)).all()
+    memo = db.info.setdefault("templates", {})
+    if ntype not in memo:  # per-session cache: the worker sends many alerts of one type in a cycle
+        memo[ntype] = db.execute(select(NotificationTemplate, NotificationChannel).join(
+            NotificationChannel, NotificationChannel.id == NotificationTemplate.channel_id).where(
+            NotificationTemplate.notification_type == ntype)).all()
+    rows = memo[ntype]
     in_app = next((tpl for tpl, ch in rows if ch.type == "IN_APP"), None)
     subject_t, body_t = (in_app.subject, in_app.body) if in_app else TEMPLATES[ntype]
     external = [(tpl, ch) for tpl, ch in rows if ch.type != "IN_APP" and ch.enabled and tpl.enabled]

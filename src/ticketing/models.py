@@ -284,6 +284,7 @@ class SlaTimer(Base):
     due_at: Mapped[datetime | None] = mapped_column(TS, index=True)
     stopped_at: Mapped[datetime | None] = mapped_column(TS)
     breached_at: Mapped[datetime | None] = mapped_column(TS)
+    warned_at: Mapped[datetime | None] = mapped_column(TS)  # SLA_WARNING sent (once per timer)
     paused_reason: Mapped[str | None] = mapped_column(String(10))  # STATUS | MANUAL
     paused_since: Mapped[datetime | None] = mapped_column(TS)
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
