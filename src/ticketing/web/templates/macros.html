@@ -1,0 +1,53 @@
+{% macro csrf_field() %}<input type="hidden" name="csrf" value="{{ csrf }}">{% endmacro %}
+
+{% macro status_chip(s) %}<span class="chip s-{{ s.code }}">{{ s.name }}</span>{% endmacro %}
+
+{% macro due_cell(d) %}{% if d and d.due_at %}<span class="{% if d.state == 'BREACHED' %}bad{% endif %}">{{ d.due_at|dt(d.time_zone) }}{% if d.state == 'BREACHED' %} · breached{% endif %}</span>{% elif d %}<span class="muted">{{ d.state|lower }}</span>{% endif %}{% endmacro %}
+
+{% macro ticket_table(items, cols=('number','title','type','priority','status','requester','resolver','team','created','due'), empty='No tickets match. Clear the filters or raise a ticket.', row_actions=None) %}
+{% if items %}
+<div class="tablewrap"><table>
+<thead><tr>
+{% for c in cols %}<th scope="col">{{ {'number':'Number','title':'Title','type':'Type','priority':'Priority','status':'Status','requester':'Requester','resolver':'Resolver','team':'Team','created':'Created','due':'Nearest due','age':'Age'}[c] }}</th>{% endfor %}
+{% if row_actions %}<th scope="col">Actions</th>{% endif %}
+</tr></thead>
+<tbody>
+{% for t in items %}
+<tr>
+{% for c in cols %}
+  {% if c == 'number' %}<td><a href="/tickets/{{ t.id }}">{{ t.number }}</a>{% if t.status.code == 'AWAITING_REQUESTER' and t.requester and t.requester.id == me.id %} <span class="chip warn">waiting on you</span>{% endif %}</td>
+  {% elif c == 'title' %}<td>{{ t.title }}</td>
+  {% elif c == 'type' %}<td>{{ t.type.name }}</td>
+  {% elif c == 'priority' %}<td>{{ t.priority.name }}</td>
+  {% elif c == 'status' %}<td>{{ status_chip(t.status) }}</td>
+  {% elif c == 'requester' %}<td>{{ t.requester.name if t.requester }}</td>
+  {% elif c == 'resolver' %}<td>{{ t.resolver.name if t.resolver else '—' }}{% if t.resolver_active == false %} <span class="bad">(deactivated)</span>{% endif %}</td>
+  {% elif c == 'team' %}<td>{{ t.team.name }}</td>
+  {% elif c == 'created' %}<td>{{ t.created_at|dt }}</td>
+  {% elif c == 'age' %}<td>{{ ((now - t.created_at).total_seconds() // 60)|int|mins }}</td>
+  {% elif c == 'due' %}<td>{{ due_cell(t.nearest_due) }}</td>
+  {% endif %}
+{% endfor %}
+{% if row_actions %}<td>{{ row_actions(t) }}</td>{% endif %}
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}<p class="panel">{{ empty }}</p>{% endif %}
+{% endmacro %}
+
+{% macro act_button(t, action, label, next=None, cls='') %}
+<form method="post" action="/tickets/{{ t.id }}/act/{{ action }}" class="inline">{{ csrf_field() }}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button type="submit" class="{{ cls }}">{{ label }}</button></form>
+{% endmacro %}
+
+{% macro pager(meta, base) %}
+{% set pages = ((meta.total + meta.page_size - 1) // meta.page_size) %}
+{% if pages > 1 %}<nav aria-label="Pages" class="actions">
+{% if meta.page > 1 %}<a class="btn" href="{{ base }}page={{ meta.page - 1 }}">Previous</a>{% endif %}
+<span class="muted">Page {{ meta.page }} of {{ pages }} · {{ meta.total }} in all</span>
+{% if meta.page < pages %}<a class="btn" href="{{ base }}page={{ meta.page + 1 }}">Next</a>{% endif %}
+</nav>{% endif %}
+{% endmacro %}
+
+{% macro active_toggle(url, active, what='this') %}
+<form method="post" action="{{ url }}" class="inline" {% if active %}data-confirm="Deactivate {{ what }}?"{% endif %}>{{ csrf_field() }}<input type="hidden" name="is_active" value="{{ 'false' if active else 'true' }}"><button type="submit">{{ 'Deactivate' if active else 'Activate' }}</button></form>
+{% endmacro %}

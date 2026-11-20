@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, status_chip with context %}
+{% block title %}{{ t.number }}{% endblock %}
+{% block content %}
+<h1>{{ t.number }} · {{ t.title }}</h1>
+{% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+
+{# 1. Header #}
+<section class="panel" aria-label="Ticket details">
+<dl class="kv">
+  <dt>Status</dt><dd>{{ status_chip(t.status) }}{% if t.reject_reason_code %} · reason {{ t.reject_reason_code|replace('_',' ')|lower }}{% endif %}</dd>
+  <dt>Priority</dt><dd>{{ t.priority.name }}</dd>
+  <dt>Type</dt><dd>{{ t.type.name }}</dd>
+  <dt>Team</dt><dd>{{ t.team.name }}</dd>
+  <dt>Requester</dt><dd>{{ t.requester.name if t.requester }}</dd>
+  <dt>Resolver</dt><dd>{{ t.resolver.name if t.resolver else 'Unassigned' }}{% if t.resolver_active == false %} <span class="bad">(deactivated)</span>{% endif %}</dd>
+  <dt>Created</dt><dd>{{ t.created_at|dt }}</dd>
+  {% if t.completed_at %}<dt>Completed</dt><dd>{{ t.completed_at|dt }}</dd>{% endif %}
+  {% if staff %}
+  <dt>Estimate</dt><dd>{{ t.estimate_minutes|mins or '—' }}</dd>
+  <dt>Actual effort</dt><dd>{{ t.actual_effort_minutes|mins or '—' }}</dd>
+  {% if t.resolution_minutes is not none %}<dt>Resolution time</dt><dd>{{ t.resolution_minutes|mins }} working time</dd>{% endif %}
+  {% if t.hold_reason %}<dt>Hold reason</dt><dd>{{ t.hold_reason }}</dd>{% endif %}
+  <dt>Assignment</dt><dd>{{ t.assignment_mode|lower }}{% if t.waiting_for_candidate %} · waiting for a resolver on shift{% endif %}</dd>
+  {% endif %}
+</dl>
+<h2>Description</h2>
+<p style="white-space:pre-wrap">{{ t.description }}</p>
+</section>
+
+{# 2. SLA strip (staff only) #}
+{% if staff and timers %}
+<section class="panel" aria-label="SLA">
+<h2>SLA{% if timers.manual_pause %} <span class="chip warn">manually paused: {{ timers.manual_pause_reason }}</span>{% endif %}</h2>
+{% if not timers.has_policy %}<p class="muted">No SLA policy matched this ticket.</p>{% else %}
+<div class="tablewrap"><table><thead><tr><th>Step</th><th>Due ({{ timers.time_zone }})</th><th>Time left</th><th>State</th><th>Progress</th></tr></thead><tbody>
+{% for x in timers['items'] %}
+<tr><td>{{ x.step }}</td><td>{{ x.due_at|dt(x.team_time_zone) if x.due_at else '—' }}</td>
+<td>{{ x.minutes_left|mins if x.minutes_left is not none else '—' }}</td>
+<td><span class="chip st-{{ x.state }}">{{ x.state|lower }}</span>{% if x.paused_reason %} ({{ x.paused_reason|lower }}){% endif %}</td>
+<td><div class="bar {% if x.percent_used >= 100 %}over{% endif %}" role="img" aria-label="{{ x.percent_used }} percent used"><span style="width:{{ [x.percent_used,100]|min }}%"></span></div></td></tr>
+{% endfor %}</tbody></table></div>{% endif %}
+</section>
+{% endif %}
+
+{# 3. Action panel #}
+{% if t.allowed_actions %}
+<section class="panel" aria-label="Actions"><h2>Actions</h2><div class="actions">
+{% for a in t.allowed_actions %}
+  {% if a in one_click %}
+  <form method="post" action="/tickets/{{ t.id }}/act/{{ a }}" class="inline">{{ csrf_field() }}<button type="submit">{{ labels[a] }}</button></form>
+  {% else %}
+  <a class="btn" href="#dlg-{{ a }}" data-open="dlg-{{ a }}" role="button">{{ labels[a] }}…</a>
+  {% endif %}
+{% endfor %}
+</div></section>
+{% endif %}
+
+{# A9.4 dialogs: a <dialog> with JavaScript, an in-page section without it #}
+{% for a in dialog_actions %}
+<dialog id="dlg-{{ a }}" aria-labelledby="dlg-{{ a }}-h" {% if open_dialog == a %}data-autoopen{% endif %}>
+<form method="post" action="/tickets/{{ t.id }}/act/{{ a }}" class="stack" data-once>{{ csrf_field() }}
+  <h2 id="dlg-{{ a }}-h">{{ labels[a] }}</h2>
+  {% if open_dialog == a and error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
+  {% if a == 'release' %}<p>Give this ticket back to the team queue?</p>{% endif %}
+  {% for name, label, kind, required in dialogs[a] %}
+    <label for="{{ a }}-{{ name }}">{{ label }}{% if not required %} (optional){% endif %}</label>
+    {% if kind == 'text' %}<textarea id="{{ a }}-{{ name }}" name="{{ name }}" {% if required %}required{% endif %} maxlength="2000">{{ typed.get(name, '') if open_dialog == a else '' }}</textarea>
+    {% elif kind == 'number' %}<input id="{{ a }}-{{ name }}" name="{{ name }}" type="number" min="{{ 0 if name == 'actual_effort_minutes' else 1 }}" {% if required %}required{% endif %} value="{{ typed.get(name, '') if open_dialog == a else '' }}">
+    {% elif kind == 'resolver' %}<select id="{{ a }}-{{ name }}" name="{{ name }}" required>{% for m in members %}<option value="{{ m.id }}">{{ m.name }}{% if m.on_shift %} · on shift{% else %} · off shift{% endif %}</option>{% endfor %}</select>
+    {% elif kind == 'priority' %}<select id="{{ a }}-{{ name }}" name="{{ name }}" required>{% for pr in priorities %}<option value="{{ pr.id }}" {% if pr.id == t.priority.id %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select>
+    {% elif kind == 'reject_code' %}<select id="{{ a }}-{{ name }}" name="{{ name }}" required>{% for c in reject_codes %}<option value="{{ c }}">{{ c|replace('_',' ')|lower }}</option>{% endfor %}</select>
+    {% elif kind == 'step' %}<select id="{{ a }}-{{ name }}" name="{{ name }}" required>{% for x in timers['items'] if x.state in ('RUNNING','PAUSED','BREACHED') and x.stopped_at is none %}<option value="{{ x.position }}">{{ x.step }}</option>{% endfor %}</select>
+    {% endif %}
+  {% endfor %}
+  <p class="actions"><button class="primary" type="submit">{{ labels[a] }}</button> <button type="button" data-close>Cancel</button></p>
+</form>
+</dialog>
+{% endfor %}
+
+{# 4. History #}
+<section class="panel" aria-label="History">
+<h2>History</h2>
+<ol class="history">
+{% for e in events %}
+<li><strong>{{ e.actor.name if e.actor != 'System' else 'System' }}</strong> · {{ e.type|replace('_',' ') }}
+  {% if e.from_status and e.to_status and e.from_status != e.to_status %}<span class="muted">({{ e.from_status|replace('_',' ')|lower }} → {{ e.to_status|replace('_',' ')|lower }})</span>{% endif %}
+  {% if e.rule %}<span class="chip">rule: {{ e.rule.name }}</span>{% endif %}
+  {% if e.reason_code %}<span class="chip">{{ e.reason_code|replace('_',' ')|lower }}</span>{% endif %}
+  · <time class="muted">{{ e.created_at|dt }}</time>
+  {% if e.note %}<div style="white-space:pre-wrap">{{ e.note }}</div>{% endif %}
+</li>
+{% else %}<li class="muted">No history yet.</li>{% endfor %}
+</ol>
+</section>
+{% endblock %}

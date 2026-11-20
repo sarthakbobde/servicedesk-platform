@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Tickets{% endblock %} · Ticketing</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+{% if me is defined %}
+<header class="top">
+  <a class="brand" href="/">Ticketing</a>
+  <nav aria-label="Main menu">
+    <ul class="menu">
+      <li><a href="/">Home</a></li>
+      <li><a href="/tickets/new">New ticket</a></li>
+      <li><a href="/tickets">My tickets{% if counts.waiting_on_me %} <span class="badge" aria-label="{{ counts.waiting_on_me }} waiting on me">{{ counts.waiting_on_me }}</span>{% endif %}</a></li>
+      {% if 'work.view' in caps %}<li><a href="/work">My work <span class="badge">{{ counts.my_work }}</span></a></li>
+      <li><a href="/queue">Team queue <span class="badge">{{ counts.queue }}</span></a></li>{% endif %}
+      {% if 'team.board' in caps %}<li><a href="/team">Team board</a></li>{% endif %}
+      {% if 'tickets.all' in caps %}<li><a href="/tickets/all">All tickets</a></li>{% endif %}
+      {% if 'admin' in caps %}<li><a href="/admin">Admin</a></li>{% endif %}
+    </ul>
+  </nav>
+  <div class="tools">
+    {% if projects|length > 1 %}
+    <form method="get" action="/project-select" class="inline" id="project-form">
+      <label for="project-select" class="sr">Project</label>
+      <select id="project-select" name="project" data-autosubmit>
+        <option value="all">All projects</option>
+        {% for pr in projects %}<option value="{{ pr.id }}" {% if selected_project == pr.id %}selected{% endif %}>{{ pr.key }} · {{ pr.name }}</option>{% endfor %}
+      </select>
+      <input type="hidden" name="back" value="{{ request.url.path }}">
+      <noscript><button type="submit">Switch</button></noscript>
+    </form>
+    {% endif %}
+    <a class="bell" href="/notifications" aria-label="Notifications, {{ unread }} unread">🔔 <span class="badge">{{ unread }}</span></a>
+  </div>
+</header>
+{% if 'admin' in caps and request.url.path.startswith('/admin') %}
+<nav class="sub" aria-label="Admin menu"><ul>
+  <li><a href="/admin">Dashboard</a></li>
+  {% if 'admin.organizations' in caps %}<li><a href="/admin/organizations">Organisations</a></li>{% endif %}
+  <li><a href="/admin/projects">Projects</a></li>
+  <li><a href="/admin/users">Users</a></li>
+  <li><a href="/admin/role-assignments/bulk">Bulk add</a></li>
+  <li><a href="/admin/ticket-types">Ticket types</a></li>
+  <li><a href="/admin/sla-policies">SLA policies</a></li>
+  {% if 'admin.platform' in caps %}
+  <li><a href="/admin/priorities">Priorities</a></li>
+  <li><a href="/admin/statuses">Statuses</a></li>
+  <li><a href="/admin/calendars">Calendars</a></li>
+  <li><a href="/admin/notification-channels">Channels</a></li>
+  <li><a href="/admin/notification-templates">Templates</a></li>
+  <li><a href="/admin/settings">Settings</a></li>
+  {% endif %}
+  <li><a href="/admin/audit">Audit log</a></li>
+</ul></nav>
+{% endif %}
+{% endif %}
+<main id="main" tabindex="-1">
+  {% if flash %}<p class="flash ok" role="status">{{ flash }}</p>{% endif %}
+  {% if flash_error %}<p class="flash err" role="alert">{{ flash_error }}</p>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+{% if me is defined %}
+<footer class="foot">
+  Signed in as <strong>{{ me.name }}</strong> · {{ role_label }}
+  · <a href="/account">My account</a>
+  <form method="post" action="/logout" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link" type="submit">Sign out</button></form>
+</footer>
+{% endif %}
+</body>
+</html>

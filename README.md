@@ -32,6 +32,12 @@ uv run uvicorn ticketing.main:app --reload
 uv run python -m ticketing.worker
 ```
 
+Optional demo data (on an empty database, after the seed):
+
+```bash
+uv run python scripts/demo_data.py
+```
+
 Configuration is read from environment variables (or `.env`): `TICKETING_DATABASE_URL`
 (default `postgresql+psycopg://postgres@localhost:55432/ticketing`), `TICKETING_SECRET_KEY`,
 `TICKETING_BASE_URL`, `TICKETING_COOKIE_SECURE`, `TICKETING_BOOTSTRAP_ADMIN_EMAIL`,

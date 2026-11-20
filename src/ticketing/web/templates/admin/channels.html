@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Notification channels{% endblock %}
+{% block content %}
+<h1>Notification channels</h1>
+<p class="muted">Secrets are never stored: settings name an environment variable that holds the SMTP password or the webhook URL.</p>
+{% for typ in ['EMAIL', 'CHAT_WEBHOOK'] %}
+<details class="panel"><summary><strong>Add {{ 'an email' if typ == 'EMAIL' else 'a chat webhook' }} channel</strong></summary>
+<form method="post" action="/admin/notification-channels" class="stack">{{ csrf_field() }}<input type="hidden" name="type" value="{{ typ }}">
+<label for="n-{{ typ }}">Name</label><input id="n-{{ typ }}" name="name" type="text" required>
+{% for k, spec in registry[typ].SPEC.items() %}<label for="{{ typ }}-{{ k }}">{{ spec[2] }}{% if not spec[1] %} (optional){% endif %}</label><input id="{{ typ }}-{{ k }}" name="set:{{ k }}" type="text" {% if spec[1] %}required{% endif %}>{% endfor %}
+<p><button class="primary">Add channel</button></p></form></details>
+{% endfor %}
+<div class="tablewrap"><table><thead><tr><th>Channel</th><th>Type</th><th>Settings</th><th>Enabled</th><th>Last failure</th><th></th></tr></thead><tbody>
+{% for c in rows %}<tr><td>{{ c.name }}</td><td>{{ c.type|replace('_',' ')|lower }}</td>
+<td>{% for k, v in (c.settings or {}).items() %}<div><code>{{ k }}</code> = {{ v }}</div>{% else %}<span class="muted">none</span>{% endfor %}</td>
+<td>{{ 'yes' if c.enabled else 'no' }}</td><td>{% if c.last_failure_at %}<span class="bad">{{ c.last_failure_at|dt }}: {{ c.last_failure_text }}</span>{% else %}—{% endif %}</td>
+<td class="actions">{% if c.type != 'IN_APP' %}
+<form method="post" action="/admin/notification-channels/{{ c.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="enabled" value="{{ 'false' if c.enabled else 'true' }}"><button>{{ 'Disable' if c.enabled else 'Enable' }}</button></form>
+<form method="post" action="/admin/notification-channels/{{ c.id }}/test" class="inline">{{ csrf_field() }}<button>Send a test</button></form>{% else %}<span class="muted">always on</span>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

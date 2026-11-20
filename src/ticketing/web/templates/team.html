@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import ticket_table, csrf_field with context %}
+{% block title %}Team board{% endblock %}
+{% block content %}
+<h1>Team board</h1>
+{% if teams|length > 1 %}
+<form method="get" class="row panel"><label>Team <select name="team" data-autosubmit>{% for tm in teams %}<option value="{{ tm.id }}" {% if team_id == tm.id %}selected{% endif %}>{{ tm.name }}</option>{% endfor %}</select></label><noscript><button>Show</button></noscript></form>
+{% endif %}
+<div class="cols">
+<div>
+{% macro row_actions(t) %}
+  {% if 'assign' in t.allowed_actions %}<form method="post" action="/tickets/{{ t.id }}/act/assign" class="inline">{{ csrf_field() }}<input type="hidden" name="next" value="/team?team={{ team_id }}"><label class="sr" for="a{{ t.id }}">Resolver</label><select id="a{{ t.id }}" name="resolver_id">{% for m in members if m.role == 'RESOLVER' %}<option value="{{ m.user.id }}">{{ m.user.name }}</option>{% endfor %}</select><button>Assign</button></form>{% endif %}
+  {% if 'priority' in t.allowed_actions %}<form method="post" action="/tickets/{{ t.id }}/act/priority" class="inline">{{ csrf_field() }}<input type="hidden" name="next" value="/team?team={{ team_id }}"><label class="sr" for="p{{ t.id }}">Priority</label><select id="p{{ t.id }}" name="priority_id">{% for pr in priorities %}<option value="{{ pr.id }}" {% if pr.id == t.priority.id %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select><button>Set</button></form>{% endif %}
+  <a href="/tickets/{{ t.id }}">Reassign, pause, extend, estimate…</a>
+{% endmacro %}
+{% for label, items in lists.items() %}
+<h2>{{ label }} ({{ items|length }})</h2>
+{{ ticket_table(items, ('number','title','priority','status','resolver','due'), empty='None.', row_actions=row_actions) }}
+{% endfor %}
+</div>
+<aside class="panel" aria-label="Resolvers">
+<h2>People</h2>
+<ul>{% for m in members %}<li>{{ m.user.name }} · {{ m.role|replace('_',' ')|lower }} · {{ m.open_tickets }} open · {% if m.on_shift %}<span class="chip st-RUNNING">on shift</span>{% else %}<span class="chip">off shift</span>{% endif %}</li>{% endfor %}</ul>
+{% if flagged %}<h2 class="bad">Held by deactivated people</h2><ul>{% for t in flagged %}<li><a href="/tickets/{{ t.id }}">{{ t.number }}</a> · {{ t.resolver.name }}</li>{% endfor %}</ul>{% endif %}
+</aside>
+</div>
+{% endblock %}

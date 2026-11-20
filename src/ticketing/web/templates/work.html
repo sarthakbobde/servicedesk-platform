@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "macros.html" import ticket_table, act_button with context %}
+{% block title %}My work{% endblock %}
+{% block content %}
+<h1>My work</h1>
+{% if not total %}<p class="panel">Nothing assigned. Check the <a href="/queue">queue</a>.</p>{% endif %}
+{% macro row_actions(t) %}
+  {% if 'start' in t.allowed_actions %}{{ act_button(t, 'start', 'Start', '/work') }}{% endif %}
+  {% if 'resolve' in t.allowed_actions %}<a class="btn" href="/tickets/{{ t.id }}#dlg-resolve">Resolve…</a>{% endif %}
+{% endmacro %}
+{% for label, items in grouped if items %}
+<h2>{{ label }} ({{ items|length }})</h2>
+{{ ticket_table(items, ('number','title','priority','status','due'), row_actions=row_actions) }}
+{% endfor %}
+{% endblock %}

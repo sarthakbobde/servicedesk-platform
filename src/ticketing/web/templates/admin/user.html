@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, active_toggle with context %}
+{% block title %}{{ user.name }}{% endblock %}
+{% block content %}
+<h1>{{ user.name }}</h1>
+{% if temp %}<div class="once" role="alert"><p><strong>Temporary password — copy it now. It will not be shown again.</strong> The person must change it at first sign-in.</p>
+<p><code class="secret" id="temp">{{ temp }}</code> <button type="button" data-copy="temp">Copy</button></p></div>{% endif %}
+<div class="cols">
+<section class="panel"><h2>Profile</h2>
+<form method="post" action="/admin/users/{{ user.id }}" class="stack">{{ csrf_field() }}
+  <label for="n">Name</label><input id="n" name="name" type="text" value="{{ user.name }}">
+  <label for="e">Email</label><input id="e" name="email" type="email" value="{{ user.email or '' }}">
+  <p><button type="submit">Save</button></p>
+</form>
+<dl class="kv"><dt>Type</dt><dd>{{ 'member' if user.user_type == 'MEMBER' else 'product user ' ~ user.external_id }}</dd>
+<dt>Status</dt><dd>{{ 'active' if user.is_active else 'inactive' }}{% if user.locked_until and user.locked_until > now %} · locked{% endif %}{% if user.must_change_password %} · must change password{% endif %}</dd>
+<dt>Last sign-in</dt><dd>{{ user.last_login_at|dt if user.last_login_at else 'never' }}</dd>
+<dt>Open tickets held</dt><dd>{{ held }}</dd></dl>
+<div class="actions">
+<form method="post" action="/admin/users/{{ user.id }}" class="inline" {% if user.is_active %}data-confirm="Deactivate {{ user.name }}?{% if held %} {{ held }} open tickets they hold will be flagged on their team boards.{% endif %}"{% endif %}>{{ csrf_field() }}<input type="hidden" name="is_active" value="{{ 'false' if user.is_active else 'true' }}"><button>{{ 'Deactivate' if user.is_active else 'Activate' }}</button></form>
+<form method="post" action="/admin/users/{{ user.id }}/reset-password" class="inline" data-confirm="Issue a new temporary password? The current one stops working at once.">{{ csrf_field() }}<button>Reset password</button></form>
+{% if 'admin.platform' in caps and user.user_type == 'MEMBER' %}<form method="post" action="/admin/users/{{ user.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="is_platform_admin" value="{{ 'false' if user.is_platform_admin else 'true' }}"><button>{{ 'Remove platform admin' if user.is_platform_admin else 'Make platform admin' }}</button></form>{% endif %}
+</div>
+</section>
+<section class="panel"><h2>Role assignments</h2>
+{% if assigns %}<table><tbody>{% for a in assigns %}<tr><td>{{ a.role|replace('_',' ')|lower }}</td><td>{% if a.team %}team {{ a.team.name }} ({{ a.project.key }}){% elif a.project %}project {{ a.project.key }}{% else %}organisation {{ a.organization.name }}{% endif %}{% if a.calendar %} · shift {{ a.calendar.name }}{% endif %}{% if not a.is_active %} · <span class="muted">inactive</span>{% endif %}</td>
+<td>{% if a.is_active %}<form method="post" action="/admin/role-assignments/{{ a.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="next" value="/admin/users/{{ user.id }}"><input type="hidden" name="is_active" value="false"><button>Remove</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table>
+{% else %}<p class="muted">No roles.</p>{% endif %}
+{% if user.user_type == 'MEMBER' %}
+<h2>Add a role</h2>
+<form method="post" action="/admin/users/{{ user.id }}/assignments" class="stack">{{ csrf_field() }}
+  <label for="r">Role</label><select id="r" name="role"><option>RESOLVER</option><option>TEAM_MANAGER</option><option>PROJECT_ADMIN</option><option>ORG_ADMIN</option></select>
+  <label for="tg">Where (team for team roles, project for project admin, organisation for org admin)</label>
+  <select id="tg" name="target">{% for tm, pr in teams %}<option value="team:{{ tm.id }}">Team {{ tm.name }} ({{ pr.key }})</option>{% endfor %}{% for x in projs %}<option value="project:{{ x.id }}">Project {{ x.key }}</option>{% endfor %}{% for o in orgs %}<option value="org:{{ o.id }}">Organisation {{ o.name }}</option>{% endfor %}</select>
+  <label for="cal">Shift calendar (team roles)</label><select id="cal" name="calendar_id"><option value="">Default calendar</option>{% for c in calendars %}<option value="{{ c.id }}">{{ c.name }} ({{ c.time_zone }})</option>{% endfor %}</select>
+  <p><button class="primary" type="submit">Add role</button></p>
+</form>{% endif %}
+</section>
+</div>
+{% endblock %}

@@ -40,7 +40,9 @@ class TxRoute(APIRoute):
         return handler
 
 
-def get_db(request: Request):
+async def get_db(request: Request):
+    """Async generator on purpose: its teardown runs on the event loop, so a request that holds a row lock never
+    waits for a threadpool slot that the requests blocked on that lock are occupying (a deadlock under load)."""
     db = SessionLocal()
     request.state.db = db
     try:

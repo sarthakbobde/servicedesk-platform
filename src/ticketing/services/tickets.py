@@ -185,6 +185,26 @@ class Ctx:
     def user(self, uid) -> User | None:
         return self.users([uid]).get(uid) if uid else None
 
+    def timers(self, ticket_id):
+        """Current SLA timers of a ticket, loaded once per call (allowed_actions asks three times)."""
+        if not hasattr(self, "_timers"):
+            self._timers = {}
+        if ticket_id not in self._timers:
+            self._timers[ticket_id] = list(self.db.scalars(select(SlaTimer).where(
+                SlaTimer.ticket_id == ticket_id, SlaTimer.is_current.is_(True))))
+        return self._timers[ticket_id]
+
+    def prefetch_timers(self, ticket_ids):
+        if not hasattr(self, "_timers"):
+            self._timers = {}
+        ids = [i for i in ticket_ids if i not in self._timers]
+        for i in ids:
+            self._timers[i] = []
+        if ids:
+            for tm in self.db.scalars(select(SlaTimer).where(SlaTimer.ticket_id.in_(ids),
+                                                             SlaTimer.is_current.is_(True))):
+                self._timers[tm.ticket_id].append(tm)
+
     def setting(self, key, project_id):
         k = (key, project_id)
         if k not in self._settings:
@@ -214,7 +234,7 @@ def state_allows(ctx: Ctx, action: str, t: Ticket) -> bool:
     if action == "reopen":
         return reopen_problem(ctx, t) is None
     if action in SLA_ACTIONS:
-        return sla.action_available(ctx.db, t, action)
+        return sla.action_available(ctx.db, t, action, ctx.timers(t.id))
     return True
 
 
@@ -834,6 +854,8 @@ def list_tickets(db: Session, p: Principal, params: dict):
     rows, meta = paginate(db, q, params.get("page") or 1, params.get("page_size") or 25, params.get("sort"), sorts,
                           [Ticket.created_at.desc(), Ticket.id.desc()])
     ctx = Ctx(db)
+    ctx.prefetch_timers([t.id for t in rows])
+    ctx.users([u for t in rows for u in (t.requester_id, t.resolver_id)])
     dues = sla.nearest_due_many(db, [t.id for t in rows])
     return [view(ctx, p, t, due=dues.get(t.id)) for t in rows], meta
 

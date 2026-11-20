@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<h1>My account</h1>
+{% if force %}<p class="flash err" role="alert">Choose a new password before you continue.</p>{% endif %}
+<div class="cols">
+<section class="panel">
+  <h2>Change password</h2>
+  <form method="post" action="/account" class="stack">{{ csrf_field() }}
+    <label for="cur">Current password</label><input id="cur" type="password" name="current_password" autocomplete="current-password" required>
+    <label for="new">New password</label><input id="new" type="password" name="new_password" autocomplete="new-password" required aria-describedby="rules">
+    <p id="rules" class="muted">At least {{ min_len }} characters, not your email, not your current password.</p>
+    <label for="rep">Repeat new password</label><input id="rep" type="password" name="repeat_password" autocomplete="new-password" required>
+    <p><button class="primary" type="submit">Change password</button></p>
+  </form>
+</section>
+<section class="panel">
+  <h2>Profile</h2>
+  <dl class="kv"><dt>Name</dt><dd>{{ me.name }}</dd><dt>Email</dt><dd>{{ me.email }}</dd>
+  {% if org %}<dt>Organisation</dt><dd>{{ org.name }}</dd>{% endif %}
+  {% if proj %}<dt>Project</dt><dd>{{ proj.key }} · {{ proj.name }}</dd>{% endif %}</dl>
+  {% if me.user_type == 'MEMBER' %}
+  <h2>My roles</h2>
+  {% if assignments %}<ul>{% for a in assignments %}<li>{{ a.role|replace('_',' ')|title }} — {% if a.team %}team {{ a.team.name }} ({{ a.project.key }}){% elif a.project %}project {{ a.project.key }}{% else %}organisation {{ a.organization.name }}{% endif %}{% if a.calendar %}, shift {{ a.calendar.name }}{% endif %}</li>{% endfor %}</ul>
+  {% else %}<p class="muted">No roles. You can raise and follow your own tickets.</p>{% endif %}
+  {% endif %}
+</section>
+</div>
+{% endblock %}

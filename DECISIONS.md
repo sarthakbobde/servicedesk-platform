@@ -17,7 +17,7 @@ how the implementation realised it; see `CHANGES-FROM-PLAN.md` for anything that
 | D10 | Routing | As proposed; see `services/routing.py`. | Proposed |
 | D11 | Escalation | Fires once per ticket, rule and reopen cycle (`escalation_firing` unique key). | Proposed |
 | D12 | Notification means | In-app always on; email and chat webhook optional; retries with back-off through the outbox. | Proposed |
-| D13 | Background work | Database-backed `job` table, `FOR UPDATE SKIP LOCKED`, at-least-once, idempotent handlers. Spike numbers in the Phase 2 report: no broker needed. | Proposed |
+| D13 | Background work | Database-backed `job` table, `FOR UPDATE SKIP LOCKED`, at-least-once, idempotent handlers. Spike: ~350 jobs/s with 4 workers, claim race correct; no broker needed (CHANGES P2-17). | Proposed |
 | D14 | Platform administration | `users.is_platform_admin`; granted by platform admins (API-024/026). | Proposed |
 | D15 | Ticket numbers | `KEY-n` from `project.ticket_seq`, incremented under row lock; key locked after the first ticket. | Proposed |
 | D16 | Setting defaults | F11 table, plus `sla.warning_percent` = 80 (CHANGES P1-6). | Proposed |
@@ -35,5 +35,5 @@ how the implementation realised it; see `CHANGES-FROM-PLAN.md` for anything that
 | D28 | Priority change | Timers replaced, counted from the original SLA start; MET steps stay MET. | Proposed |
 | D29 | Step minutes | Cumulative, non-decreasing; the last step is the total. | Proposed |
 | D30 | Claim and re-routing | Claim only on NEW AUTO tickets waiting for a candidate; release skips the releasing resolver once. | Proposed |
-| D31 | Reopen limits | Blocked after WRONG_TEAM/DUPLICATE, after NO_REPLY? **No**: NO_REPLY may reopen inside the window. Blocked into inactive team or type. | Proposed |
-| D32 | Performance targets | Measured in Phase 4/5 reports. | Proposed |
+| D31 | Reopen limits | Blocked after a WRONG_TEAM or DUPLICATE reject and into an inactive team or type. A NO_REPLY reject can be reopened inside the window (CHANGES P2-8). | Proposed |
+| D32 | Performance targets | Worker cycle at 10,200 open timers: 4.5–5 s steady state (met). Ten concurrent claims: one winner (met). API/page latency: met up to ~25 concurrent users on a laptop with 4 workers, **not met at 100** (CHANGES P4-13, P5-11). Re-measure on production hardware. | Proposed |

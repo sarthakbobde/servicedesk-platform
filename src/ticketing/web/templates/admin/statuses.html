@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Statuses{% endblock %}
+{% block content %}
+<h1>Statuses</h1>
+<p class="muted">Code, order and category of the nine core statuses are locked; only the name can change. Transition rules are not editable.</p>
+<div class="tablewrap"><table><thead><tr><th>Order</th><th>Code</th><th>Category</th><th>Name</th></tr></thead><tbody>
+{% for s in rows %}<tr><td>{{ s.sort_order }}</td><td><code>{{ s.code }}</code></td><td>{{ s.category|lower }}</td>
+<td><form method="post" action="/admin/statuses/{{ s.id }}" class="inline">{{ csrf_field() }}<label class="sr" for="s{{ s.id }}">Name</label><input id="s{{ s.id }}" name="name" value="{{ s.name }}"><button>Rename</button></form></td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Bulk add people{% endblock %}
+{% block content %}
+<h1>Bulk add people</h1>
+{% if result %}<section class="panel" role="status"><h2>Result</h2>
+<p>Created: {{ result.created|length }} · Skipped as duplicates: {{ result.skipped|length }} · Refused: {{ result.refused|length }}</p>
+<ul>{% for r in result.created %}<li>{{ names.get(r.user_id) }} — created</li>{% endfor %}{% for r in result.skipped %}<li>{{ names.get(r.user_id) }} — skipped (already holds it)</li>{% endfor %}{% for r in result.refused %}<li class="bad">{{ names.get(r.user_id) }} — refused: {{ r.reason }}</li>{% endfor %}</ul></section>{% endif %}
+<form method="post" action="/admin/role-assignments/bulk" class="panel stack">{{ csrf_field() }}
+  <label for="t">Team</label><select id="t" name="team_id">{% for tm, pr in teams %}<option value="{{ tm.id }}">{{ pr.key }} · {{ tm.name }}</option>{% endfor %}</select>
+  <label for="r">Role</label><select id="r" name="role"><option>RESOLVER</option><option>TEAM_MANAGER</option></select>
+  <fieldset><legend>People</legend>
+  {% for u in users %}<label style="font-weight:normal"><input type="checkbox" name="user_ids" value="{{ u.id }}"> {{ u.name }} <span class="muted">{{ u.email }}</span></label>{% else %}<p class="muted">No people in your scope.</p>{% endfor %}
+  </fieldset>
+  <p><button class="primary" type="submit">Apply</button></p>
+</form>
+{% endblock %}

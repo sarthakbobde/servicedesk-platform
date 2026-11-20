@@ -13,8 +13,7 @@ log = logging.getLogger("ticketing")
 
 
 def _wants_html(request: Request) -> bool:
-    return (getattr(request.app.state, "portal", False) and not request.url.path.startswith("/api/")
-            and "text/html" in request.headers.get("accept", ""))
+    return getattr(request.app.state, "portal", False) and not request.url.path.startswith("/api/")
 
 
 def create_app() -> FastAPI:

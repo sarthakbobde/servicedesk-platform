@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}New ticket{% endblock %}
+{% block content %}
+<h1>New ticket</h1>
+{% if not raise_projects %}<p class="panel">There is no project you can raise tickets in.</p>{% else %}
+{% if raise_projects|length > 1 %}
+<form method="get" action="/tickets/new" class="row panel">
+  <label>Project <select name="project" data-autosubmit>{% for pr in raise_projects %}<option value="{{ pr.id }}" {% if pr.id == project_id %}selected{% endif %}>{{ pr.key }} · {{ pr.name }}</option>{% endfor %}</select></label>
+  <noscript><button type="submit">Choose</button></noscript>
+</form>
+{% endif %}
+<form method="post" action="/tickets/new" class="stack panel" data-once>{{ csrf_field() }}
+  <input type="hidden" name="project_id" value="{{ project_id }}">
+  <input type="hidden" name="idempotency_key" value="{{ key }}">
+  <label for="type_id">Ticket type</label>
+  <select id="type_id" name="type_id" required>
+    {% for tt in types %}<option value="{{ tt.id }}" data-team="{{ tt.team.name }}" {% if values.type_id == tt.id|string %}selected{% endif %}>{{ tt.name }}</option>{% endfor %}
+  </select>
+  <p id="team-note" class="muted" aria-live="polite">{% if types %}Handled by team {{ types[0].team.name }}{% endif %}</p>
+  {% if choose_priority %}
+  <label for="priority_id">Priority</label>
+  <select id="priority_id" name="priority_id">{% for pr in priorities %}<option value="{{ pr.id }}" {% if (values.priority_id and values.priority_id == pr.id|string) or (not values.priority_id and pr.is_default) %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select>
+  {% endif %}
+  <label for="title">Title</label>
+  <input id="title" name="title" type="text" maxlength="200" required value="{{ values.title or '' }}">
+  <label for="description">Description</label>
+  <textarea id="description" name="description" required maxlength="10000">{{ values.description or '' }}</textarea>
+  <p><button class="primary" type="submit">Raise ticket</button></p>
+</form>
+{% endif %}
+{% endblock %}

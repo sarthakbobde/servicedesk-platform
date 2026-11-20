@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, pager with context %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1>Users</h1>
+<form method="get" class="row panel" aria-label="Search">
+  <label>Search <input type="search" name="q" value="{{ q.q or '' }}"></label>
+  <label>Type <select name="user_type"><option value="">Any</option><option value="MEMBER" {% if q.user_type == 'MEMBER' %}selected{% endif %}>Member</option><option value="PRODUCT_USER" {% if q.user_type == 'PRODUCT_USER' %}selected{% endif %}>Product user</option></select></label>
+  <label>Organisation <select name="organization_id"><option value="">Any</option>{% for o in orgs %}<option value="{{ o.id }}" {% if q.organization_id == o.id|string %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</select></label>
+  <label>Project <select name="project_id"><option value="">Any</option>{% for x in projs %}<option value="{{ x.id }}" {% if q.project_id == x.id|string %}selected{% endif %}>{{ x.key }}</option>{% endfor %}</select></label>
+  <label>Active <select name="active"><option value="">Any</option><option value="true">Active</option><option value="false">Inactive</option></select></label>
+  <button>Search</button>
+</form>
+<details class="panel"><summary><strong>Create a user</strong></summary>
+<form method="post" action="/admin/users" class="stack">{{ csrf_field() }}
+  <label for="ut">Type</label><select id="ut" name="user_type"><option value="MEMBER">Member</option><option value="PRODUCT_USER">Product user (portal account)</option></select>
+  <label for="un">Name</label><input id="un" name="name" type="text" required>
+  <label for="ue">Email</label><input id="ue" name="email" type="email" required>
+  <label for="uo">Organisation (members)</label><select id="uo" name="organization_id"><option value="">—</option>{% for o in orgs %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+  <label for="up">Project (product users)</label><select id="up" name="project_id"><option value="">—</option>{% for x in projs %}<option value="{{ x.id }}">{{ x.key }}</option>{% endfor %}</select>
+  <label for="ux">Product ID (product users)</label><input id="ux" name="external_id" type="text">
+  {% if 'admin.platform' in caps %}<label><input type="checkbox" name="is_platform_admin" value="true"> Platform admin</label>{% endif %}
+  <p><button class="primary" type="submit">Create</button></p>
+</form></details>
+{% if rows %}<div class="tablewrap"><table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Organisation or project</th><th>Active</th></tr></thead><tbody>
+{% for u in rows %}<tr><td><a href="/admin/users/{{ u.id }}">{{ u.name }}</a>{% if u.is_platform_admin %} <span class="chip">platform admin</span>{% endif %}</td><td>{{ u.email or '' }}</td><td>{{ 'member' if u.user_type == 'MEMBER' else 'product user' }}</td>
+<td>{{ org_names.get(u.organization_id) if u.organization_id else proj_keys.get(u.project_id) }}</td><td>{{ 'yes' if u.is_active else 'no' }}</td></tr>{% endfor %}
+</tbody></table></div>
+{{ pager(meta, '/admin/users?' ~ (request.url.query|replace('page=' ~ meta.page, '')) ~ '&') }}
+{% else %}<p class="panel">No users match. Change the search or create a user.</p>{% endif %}
+{% endblock %}

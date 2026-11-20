@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "macros.html" import ticket_table with context %}
+{% block title %}Admin dashboard{% endblock %}
+{% block content %}
+<h1>Admin dashboard</h1>
+<div class="grid">
+  <a class="tile" href="/tickets/all?overdue=true"><span class="n">{{ dash.overdue.count }}</span><span class="l">Overdue</span></a>
+  <a class="tile" href="#at-risk"><span class="n">{{ dash.at_risk.count }}</span><span class="l">At risk (≥ {{ dash.at_risk.warning_percent }}% used)</span></a>
+  <a class="tile" href="/tickets/all?status=NEW&resolver=none"><span class="n">{{ dash.oldest_unassigned.count }}</span><span class="l">Unassigned</span></a>
+  {% if status %}<a class="tile" href="#system"><span class="n">{{ status.failed_sends.count }}</span><span class="l">Failed sends · {{ status.warnings|length }} warnings</span></a>{% endif %}
+</div>
+<h2>Overdue</h2>{{ ticket_table(dash.overdue['items'], ('number','title','priority','status','resolver','team','due'), empty='Nothing is overdue.') }}
+<h2 id="at-risk">At risk</h2>{{ ticket_table(dash.at_risk['items'], ('number','title','priority','status','resolver','team','due'), empty='Nothing is at risk.') }}
+<h2>Oldest unassigned</h2>{{ ticket_table(dash.oldest_unassigned['items'], ('number','title','type','priority','team','created'), empty='Nothing waits for assignment.') }}
+<div class="cols" style="margin-top:14px">
+<section class="panel"><h2>Open by status</h2><table><tbody>{% for s in dash.by_status %}<tr><td><a href="/tickets/all?status={{ s.code }}">{{ s.name }}</a></td><td>{{ s.count }}</td></tr>{% else %}<tr><td>No open tickets.</td></tr>{% endfor %}</tbody></table></section>
+<section class="panel"><h2>Open by team</h2><table><tbody>{% for s in dash.by_team %}<tr><td>{{ s.name }}</td><td>{{ s.count }}</td></tr>{% else %}<tr><td>No open tickets.</td></tr>{% endfor %}</tbody></table>
+<h2>Open by project</h2><table><tbody>{% for s in dash.by_project %}<tr><td>{{ s.key }} · {{ s.name }}</td><td>{{ s.count }}</td></tr>{% endfor %}</tbody></table></section>
+</div>
+{% if status %}
+<section class="panel" id="system"><h2>System status</h2>
+<dl class="kv"><dt>Worker last run</dt><dd>{{ status.worker_last_run|dt if status.worker_last_run else 'never' }}</dd>
+<dt>Job backlog</dt><dd>{{ status.job_backlog }} (failed jobs: {{ status.jobs_failed }})</dd>
+<dt>Outbox pending</dt><dd>{{ status.outbox_pending }}</dd><dt>Failed sends</dt><dd>{{ status.failed_sends.count }}</dd></dl>
+{% if status.warnings %}<h2>Warnings</h2><ul>{% for w in status.warnings %}<li>{{ w.kind|replace('_',' ') }}{% if w.calendar %}: {{ w.calendar.name }}{% endif %}{% if w.priority %}: {{ w.priority.name }} × {{ w.type.name }}{% endif %}{% if w.count %}: {{ w.count }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

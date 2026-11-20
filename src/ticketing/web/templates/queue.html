@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "macros.html" import ticket_table, act_button, csrf_field with context %}
+{% block title %}Team queue{% endblock %}
+{% block content %}
+<h1>Team queue</h1>
+{% if teams|length > 1 %}
+<form method="get" class="row panel"><label>Team <select name="team" data-autosubmit><option value="">All my teams</option>{% for tm in teams %}<option value="{{ tm.id }}" {% if team == tm.id|string %}selected{% endif %}>{{ tm.name }}</option>{% endfor %}</select></label><noscript><button>Show</button></noscript></form>
+{% endif %}
+{% macro row_actions(t) %}
+  {% if 'claim' in t.allowed_actions %}{{ act_button(t, 'claim', 'Claim', '/queue') }}{% endif %}
+  {% if 'assign' in t.allowed_actions and members.get(t.team.id) %}
+  <form method="post" action="/tickets/{{ t.id }}/act/assign" class="inline">{{ csrf_field() }}<input type="hidden" name="next" value="/queue">
+    <label class="sr" for="as-{{ t.id }}">Resolver</label>
+    <select id="as-{{ t.id }}" name="resolver_id">{% for m in members[t.team.id] if m.role == 'RESOLVER' %}<option value="{{ m.user.id }}">{{ m.user.name }} ({{ 'on shift' if m.on_shift else 'off shift' }}, {{ m.open_tickets }} open)</option>{% endfor %}</select>
+    <button type="submit">Assign</button></form>
+  {% endif %}
+{% endmacro %}
+{{ ticket_table(items, ('number','title','type','priority','age','due'), empty='The queue is empty.', row_actions=row_actions) }}
+{% endblock %}

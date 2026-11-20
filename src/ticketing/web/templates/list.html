@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "macros.html" import ticket_table, pager with context %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<form method="get" class="row panel" aria-label="Filters">
+  <label>Status <select name="status">
+    <option value="">Any</option>
+    {% for v, l in [('open','Open'),('waiting','Waiting on requester'),('finished','Finished'),('NEW','New'),('ASSIGNED','Assigned'),('IN_PROGRESS','In progress'),('ON_HOLD','On hold'),('RESOLVED','Resolved'),('CLOSED','Closed')] %}
+    <option value="{{ v }}" {% if v in params.status %}selected{% endif %}>{{ l }}</option>{% endfor %}
+  </select></label>
+  <label>Priority <select name="priority"><option value="">Any</option>{% for pr in priorities %}<option value="{{ pr.id }}" {% if params.priority == pr.id|string %}selected{% endif %}>{{ pr.name }}</option>{% endfor %}</select></label>
+  {% if full %}
+  <label>Resolver <select name="resolver"><option value="">Any</option><option value="me" {% if params.resolver == 'me' %}selected{% endif %}>Me</option><option value="none" {% if params.resolver == 'none' %}selected{% endif %}>Unassigned</option></select></label>
+  <label>Overdue <input type="checkbox" name="overdue" value="true" {% if params.overdue %}checked{% endif %}></label>
+  <label>Created from <input type="date" name="created_from" value="{{ params.created_from or '' }}"></label>
+  <label>Created to <input type="date" name="created_to" value="{{ params.created_to or '' }}"></label>
+  {% endif %}
+  <label>Search <input type="search" name="q" value="{{ params.q or '' }}" placeholder="Number or title"></label>
+  <label>Sort <select name="sort">{% for v, l in [('', 'Newest'),('nearest_due','Nearest due'),('number','Number'),('title','Title'),('priority','Priority'),('status','Status')] %}<option value="{{ v }}" {% if params.sort == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+  <button type="submit">Apply</button> <a href="{{ request.url.path }}">Clear</a>
+</form>
+{% if params.error %}<p class="flash err">{{ params.error }}</p>{% endif %}
+{% if view == 'mine' %}<p><a class="btn" href="/tickets/new">New ticket</a></p>{% endif %}
+{{ ticket_table(items, ('number','title','type','priority','status','resolver','team','created','due') if full else ('number','title','type','priority','status','resolver','due')) }}
+{% set base = request.url.path ~ '?' ~ (request.url.query|replace('page=' ~ meta.page, '')) ~ ('&' if request.url.query else '') %}
+{{ pager(meta, base) }}
+{% endblock %}

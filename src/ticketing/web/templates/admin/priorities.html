@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, active_toggle with context %}
+{% block title %}Priorities{% endblock %}
+{% block content %}
+<h1>Priorities</h1>
+<form method="post" action="/admin/priorities" class="row panel">{{ csrf_field() }}
+  <label>Name <input name="name" required></label><label>Rank (1 = most urgent) <input name="rank" type="number" min="1" required></label>
+  <label><span>Default</span><input type="checkbox" name="is_default" value="true"></label><button class="primary">Add</button>
+</form>
+<div class="tablewrap"><table><thead><tr><th>Rank</th><th>Name</th><th>Default</th><th>Active</th><th>Change</th></tr></thead><tbody>
+{% for x in rows %}<tr><td>{{ x.rank }}</td><td>{{ x.name }}</td><td>{{ 'default' if x.is_default else '' }}</td><td>{{ 'yes' if x.is_active else 'no' }}</td>
+<td><form method="post" action="/admin/priorities/{{ x.id }}" class="inline">{{ csrf_field() }}<label class="sr" for="pn{{ x.id }}">Name</label><input id="pn{{ x.id }}" name="name" value="{{ x.name }}" size="10"><label class="sr" for="pr{{ x.id }}">Rank</label><input id="pr{{ x.id }}" name="rank" type="number" value="{{ x.rank }}" style="width:5em"><button>Save</button></form>
+{% if not x.is_default and x.is_active %}<form method="post" action="/admin/priorities/{{ x.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="is_default" value="true"><button>Make default</button></form>{% endif %}
+{% if not x.is_default %}{{ active_toggle('/admin/priorities/' ~ x.id, x.is_active, x.name) }}{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

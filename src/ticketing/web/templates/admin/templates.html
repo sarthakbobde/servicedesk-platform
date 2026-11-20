@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Notification templates{% endblock %}
+{% block content %}
+<h1>Notification templates</h1>
+<p class="muted">A template for a type and channel both defines the text and turns that route on. Placeholders: {% for x in placeholders %}<code>{{ '{' ~ x ~ '}' }}</code> {% endfor %}</p>
+<div class="tablewrap"><table><thead><tr><th>Type</th>{% for c in chans %}<th>{{ c.name }}</th>{% endfor %}</tr></thead><tbody>
+{% for t in types %}<tr><th scope="row">{{ t|replace('_',' ')|lower|capitalize }}</th>
+{% for c in chans %}{% set tpl = grid.get((t, c.id)) %}<td>{% if tpl %}<a href="?edit={{ tpl.id }}">{{ 'on' if tpl.enabled else 'off' }} · edit</a>{% else %}<a href="?type={{ t }}&channel={{ c.id }}">add</a>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table></div>
+{% if edit %}
+<div class="cols" style="margin-top:12px">
+<section class="panel"><h2>Edit: {{ edit.notification_type|replace('_',' ')|lower }}</h2>
+<form method="post" action="/admin/notification-templates/{{ edit.id }}" class="stack">{{ csrf_field() }}
+<label for="sub">Subject</label><input id="sub" name="subject" type="text" value="{{ edit.subject or '' }}">
+<label for="body">Body</label><textarea id="body" name="body" required>{{ edit.body }}</textarea>
+<p><button class="primary">Save</button></p></form>
+<form method="post" action="/admin/notification-templates/{{ edit.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="enabled" value="{{ 'false' if edit.enabled else 'true' }}"><button>{{ 'Disable' if edit.enabled else 'Enable' }}</button></form>
+</section>
+<section class="panel"><h2>Preview with sample data</h2><p><strong>{{ preview.subject }}</strong></p><p style="white-space:pre-wrap">{{ preview.body }}</p>
+{% if preview.unknown_placeholders %}<p class="bad">Unknown placeholders: {{ preview.unknown_placeholders|join(', ') }}</p>{% endif %}</section>
+</div>
+{% elif new_type %}
+<section class="panel"><h2>Add template</h2>
+<form method="post" action="/admin/notification-templates" class="stack">{{ csrf_field() }}
+<input type="hidden" name="notification_type" value="{{ new_type }}"><input type="hidden" name="channel_id" value="{{ new_channel }}">
+<p>{{ new_type|replace('_',' ')|lower|capitalize }}</p>
+<label for="ns">Subject</label><input id="ns" name="subject" type="text" value="{{ '{ticket_number}' }} {{ new_type|replace('_',' ')|lower }}">
+<label for="nb">Body</label><textarea id="nb" name="body" required>{{ '{ticket_number}' }} "{{ '{title}' }}" is {{ '{status}' }}. {{ '{link}' }}</textarea>
+<p><button class="primary">Add</button></p></form></section>
+{% endif %}
+{% endblock %}

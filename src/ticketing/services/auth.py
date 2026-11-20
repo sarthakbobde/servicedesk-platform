@@ -14,6 +14,9 @@ from ..permissions import Principal, load_principal
 from ..security import fast_hash, hash_password, new_token, temporary_password, verify_password
 
 
+TOUCH_EVERY = timedelta(seconds=60)
+
+
 def find_by_email(db: Session, email: str) -> User | None:
     return db.scalar(select(User).where(func.lower(User.email) == (email or "").strip().lower()))
 
@@ -83,8 +86,17 @@ def resolve_token(db: Session, token: str, kind: str) -> tuple[User, AuthSession
         if now - row.last_seen_at > timedelta(minutes=s["auth.session_idle_minutes"]) or now >= absolute:
             row.revoked_at = now
             return None
-        row.last_seen_at = now
-        row.expires_at = min(absolute, now + timedelta(minutes=s["auth.session_idle_minutes"]))
+        if now - row.last_seen_at >= TOUCH_EVERY:
+            # Touch at most once a minute, in its own short transaction, so the session row is never held locked
+            # for the length of a request (many tabs and requests share one session).
+            from ..db import get_engine
+            expires = min(absolute, now + timedelta(minutes=s["auth.session_idle_minutes"]))
+            with get_engine().begin() as conn:
+                conn.execute(update(AuthSession).where(AuthSession.id == row.id)
+                             .values(last_seen_at=now, expires_at=expires))
+            from sqlalchemy.orm.attributes import set_committed_value  # reflect it without a second UPDATE
+            set_committed_value(row, "last_seen_at", now)
+            set_committed_value(row, "expires_at", expires)
     return user, row
 
 
