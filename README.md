@@ -56,12 +56,6 @@ uv run pytest
 Tests need PostgreSQL. They use `TICKETING_DATABASE_URL` if set, else
 `postgresql+psycopg://postgres@localhost:55432/ticketing_test`, migrate it from scratch and reseed before each test.
 
-## Publish to GitHub
+## Repository
 
-```bash
-gh auth login
-```
-
-```bash
-gh repo create ticketing-system --private --source . --remote origin --push
-```
+https://github.com/sarthakbobde/servicedesk-platform (private)

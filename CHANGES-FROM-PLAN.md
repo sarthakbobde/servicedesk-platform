@@ -13,7 +13,7 @@ Legend: **Change** = differs from the plan. **Choice** = the plan was silent or 
 
 | # | Type | What | Why | Where |
 |---|------|------|-----|-------|
-| S1 | Env | The GitHub repository could not be created automatically: the GitHub CLI on this machine is not signed in. All work is committed to a local git repository; run `gh auth login` and then `gh repo create` (commands in `README.md`) to publish it. | Creating a repository needs your GitHub sign-in, which I must not enter for you. | `README.md` → "Publish to GitHub" |
+| S1 | Env | The repository is `sarthakbobde/servicedesk-platform` (private), created in the browser and pushed with the machine's stored git credentials; the GitHub CLI is not signed in. Name changed from the working title `ticketing-system`. | The CLI sign-in did not complete. | `README.md` |
 | S2 | Env | Development and tests use a private PostgreSQL 17 cluster on port **55432** with trust auth (`%LOCALAPPDATA%\ticketing-pgdata`), databases `ticketing` and `ticketing_test`. | The installed PostgreSQL service needs a password I don't have. | `TICKETING_DATABASE_URL`, `tests/conftest.py` |
 | S3 | Env | The Python virtualenv lives outside the project (`UV_PROJECT_ENVIRONMENT=C:/Users/sbobd/.venvs/ticketing`). | The project folder path is long; files inside `.venv` passed Windows' 260-character limit and failed to import. | `README.md` |
 | S4 | Choice | Python 3.12, FastAPI, SQLAlchemy 2.1, Alembic, psycopg 3, Jinja2, Argon2 for passwords (D2 as proposed). | D2 default. | `pyproject.toml` |
