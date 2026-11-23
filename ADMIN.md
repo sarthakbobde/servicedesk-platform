@@ -52,8 +52,24 @@ in CI (`alembic upgrade head && alembic downgrade base && alembic upgrade head`)
 
 ## Demo data
 
-`uv run python scripts/demo_data.py` after the seed, on an empty database. Accounts end in `@demo.test`; the
-password is printed and must be changed at first sign-in.
+`uv run python scripts/demo_data.py` after the seed, on an empty database (never production). It builds three
+projects (Internal IT, Acme web shop, Northwind fleet app), five teams, 15 members and 5 product users, 13 ticket
+types, SLA policies with escalation rules, and about 40 tickets whose history is replayed at back-dated times over
+the last three weeks, so every status, SLA breaches, escalations, reopen, release and auto-close appear.
+
+All accounts end in `@demo.test` (for example `maya@demo.test`, team manager; `ravi@demo.test`, resolver;
+`paula@demo.test`, project admin; `rita@demo.test`, requester; `sam@demo.test`, product user) and share the password
+`Demo-password-2026` (override with `DEMO_PASSWORD`); no change is forced at first sign-in. The full list is printed.
+
+To keep demo data apart from other local data, load it into its own database:
+
+```bash
+createdb -p 55432 -U postgres ticketing_demo
+TICKETING_DATABASE_URL=postgresql+psycopg://postgres@localhost:55432/ticketing_demo uv run alembic upgrade head
+TICKETING_DATABASE_URL=... uv run python -m ticketing.seed && TICKETING_DATABASE_URL=... uv run python scripts/demo_data.py
+```
+
+and point the app at it with `TICKETING_DATABASE_URL` in `.env`.
 
 ## Before release (remaining human actions, open decisions, known limits)
 
