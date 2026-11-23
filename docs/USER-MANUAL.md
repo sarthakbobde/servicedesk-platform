@@ -50,6 +50,8 @@ You raise tickets, follow them and answer the team's questions. You see your own
 - Open a ticket to see its status, who is working on it and the activity timeline.
 - The bell shows new notifications: assignment, questions, resolution, rejection.
 
+If the team splits your ticket into parts, a **Child tickets** card lists each part's number, title and status. Your ticket is resolved once all its parts are finished.
+
 **Answer a question**
 
 When the resolver needs information the status becomes **Awaiting requester** and you get a notification. Open the ticket, click **Respond**, type your answer and send it. The ticket goes back to In progress. If you do not answer within 7 days, the system rejects the ticket with reason No reply.
@@ -103,6 +105,16 @@ You work the tickets of your team. Tickets reach you automatically while you are
 
 - **Reject** a ticket that is not for your team or not a real request: pick a reason code (Wrong team, Duplicate, Not a ticket, Info missing, Other) and explain. Wrong team and Duplicate cannot be reopened, so the requester raises a new ticket in the right place.
 - **Release** gives the ticket back to the queue. Automatic routing skips you once, so it goes to a colleague.
+
+**Split a ticket into child tickets**
+
+When part of the work belongs to another team (for example a new starter who also needs network access), split it off as a child ticket. Team managers and project admins can do this on any open ticket of their scope.
+
+1. On an open ticket assigned to you, find the **Child tickets** card and click **+ Add child ticket**.
+2. The *New child ticket* form names the parent. Choose the **Ticket type** of the team that should do this part, keep or change the priority (the parent's by default), write a title and description, and click **Create child ticket**.
+3. The child gets its own number, team, resolver and SLA. The parent lists it with its team, resolver and a count such as "0 of 1 finished", and its activity records when a child is created, finished or reopened.
+
+Rules: a child cannot have children of its own. The parent cannot be resolved, rejected or withdrawn while any child is open; those buttons come back once every child is finished. Closing the parent does not close its children.
 
 **Reading the SLA card**
 
@@ -195,6 +207,7 @@ Who can take each ticket action. "Own" means only on tickets assigned to you; ma
 | Change priority, set estimate | | | Yes | Yes |
 | Pause, resume, extend SLA | | | Yes | Yes |
 | Respond, withdraw, reopen | Own tickets | | | |
+| Add a child ticket | | Own | Yes | Yes |
 
 **Troubleshooting**
 
@@ -208,3 +221,4 @@ Who can take each ticket action. "Own" means only on tickets assigned to you; ma
 | Ticket in the wrong team | Reject it with reason Wrong team; the requester raises it again with the right type. |
 | No emails arrive | A platform admin checks Admin > Channels (last failure, Send a test) and the system status page. |
 | Automatic ticket not assigned | Nobody was on shift. It waits in the Team queue, is retried every 5 minutes and can be claimed. |
+| Resolve, Reject or Withdraw missing, or "Finish its child tickets first" | The ticket has open child tickets, listed in its Child tickets card. Finish them first; the buttons then come back. |

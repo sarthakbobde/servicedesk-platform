@@ -11,7 +11,7 @@ The platform lets internal staff and client customers raise support tickets, rou
 - Accounts, sign-in, sessions and API tokens for members and product users (end customers of a client).
 - Organisations, projects, teams and role assignments, with every rule scoped to the project.
 - Ticket intake from the portal and the REST API, manual and automatic routing on people's shifts.
-- A nine-status lifecycle with 15 actions, plus priority and estimate changes.
+- A nine-status lifecycle with 15 actions, plus priority and estimate changes, and child tickets that split one request across teams.
 - SLA policies with timed steps, working-time calendars, pauses, extensions and breach detection.
 - Escalation rules that notify, reassign or raise priority.
 - Notifications in-app, by email (SMTP) and by chat webhook, with editable templates.
@@ -42,7 +42,7 @@ Accounts are created by an administrator; there is no self sign-up. A requester 
 
 ## Functional requirements
 
-Twelve feature areas, F1 to F12; each requirement below is built and covered by tests (see [TRACEABILITY.md](../TRACEABILITY.md)).
+Thirteen feature areas, F1 to F12 from the plan and F13 added after it; each requirement below is built and covered by tests (see [TRACEABILITY.md](../TRACEABILITY.md)).
 
 | ID | Area | Requirement |
 | --- | --- | --- |
@@ -58,6 +58,7 @@ Twelve feature areas, F1 to F12; each requirement below is built and covered by 
 | F10 | Lists and dashboards | My tickets, My work, Team queue, Team board and All tickets, with filters (status, priority, resolver, overdue, dates, search), sorting and paging. Sidebar counts. Admin dashboard of open, at-risk and breached tickets by team, and a system status page (worker heartbeat, failed sends, job backlog). |
 | F11 | Settings | A typed registry of 17 settings, global or per project, validated with ranges, hot reloaded, every change audited. Reopen window must not exceed the auto-close delay. |
 | F12 | Audit | Every configuration change records who, when, what and the before and after values, scoped so a project admin sees only their projects. |
+| F13 | Child tickets | An open ticket can be split into child tickets: same project, any active ticket type (so any team), one level deep, priority defaulting to the parent's. The parent's resolver, its team managers and the project's admins may add them; requesters and product users may not. A parent cannot be resolved, rejected or withdrawn while a child is open, and the no-reply rejection skips it. Each child has its own routing, resolver, SLA and lifecycle; the parent's timers keep running, and closing a parent leaves its children open. The parent's history records child created, finished and reopened. Staff see each child's team and resolver and a finished count; the requester sees child numbers, titles and statuses only. Not in the plan: CHANGES-FROM-PLAN P5-17. |
 
 ## Ticket lifecycle
 
@@ -65,7 +66,7 @@ A ticket moves through nine statuses; five are open, three finish it, and Closed
 
 ![Ticket lifecycle: nine statuses](img/ticket-lifecycle.png)
 
-Assignment happens by a manager, by a resolver's claim or automatically. Hold, request information and resolve are also allowed straight from Assigned. Reject works from any open status; withdraw (by the requester) from New, Assigned, On hold and Awaiting requester. Reopen returns any finished ticket to New inside the reopen window, except after a Wrong team or Duplicate rejection. A requester who does not answer within 7 days is rejected by the system with reason No reply. Priority, estimate and SLA pause, resume and extend do not change the status.
+Assignment happens by a manager, by a resolver's claim or automatically. Hold, request information and resolve are also allowed straight from Assigned. Reject works from any open status; withdraw (by the requester) from New, Assigned, On hold and Awaiting requester. Reopen returns any finished ticket to New inside the reopen window, except after a Wrong team or Duplicate rejection. A requester who does not answer within 7 days is rejected by the system with reason No reply. Priority, estimate and SLA pause, resume and extend do not change the status. A parent ticket with open child tickets cannot be resolved, rejected or withdrawn until they finish.
 
 ## Non-functional requirements
 
@@ -86,7 +87,7 @@ Assignment happens by a manager, by a resolver's claim or automatically. Hold, r
 
 ## Interfaces
 
-- **REST API** at /api/v1 with an OpenAPI page at /api/docs: 109 endpoints. Staff use a bearer token; client products use project key, secret and external user id. Errors have one shape: error code, message and per-field messages.
+- **REST API** at /api/v1 with an OpenAPI page at /api/docs: 110 endpoints, including POST /tickets/{ref}/children for child tickets. Staff use a bearer token; client products use project key, secret and external user id. Errors have one shape: error code, message and per-field messages.
 - **Portal and admin portal**: 30 server-rendered screens using the same service functions as the API, so both always agree on who may do what. Works without JavaScript; dialogs and the bell use one small script.
 - **Notification channels**: email over SMTP (host, port, sender, user, password variable, STARTTLS) and chat webhooks posting JSON text to a URL held in an environment variable.
 - **Background worker**: one process running due jobs, SLA breach and warning sweeps, escalation, auto-close, no-reply rejection, routing retry and outbox delivery.
@@ -94,7 +95,7 @@ Assignment happens by a manager, by a resolver's claim or automatically. Hold, r
 
 ## Acceptance, open items and known limits
 
-The release is accepted when every function F1 to F12 has a passing test, every endpoint has a role-denial test, and screen and API give the same permission outcome. Today all 355 tests pass on PostgreSQL.
+The release is accepted when every function F1 to F13 has a passing test, every endpoint has a role-denial test, and screen and API give the same permission outcome. Today all 361 tests pass on PostgreSQL.
 
 **Open items**
 
