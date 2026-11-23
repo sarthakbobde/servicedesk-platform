@@ -8,6 +8,8 @@ Start with:
 - `CLAUDE.md` — how the code is organised and the rules every change follows.
 - `CHANGES-FROM-PLAN.md` — every deviation from the development plan, and every choice the plan left open.
 - `DECISIONS.md` — D1..D32 with status; `TRACEABILITY.md` — function → module, endpoint, screen, test.
+- `docs/REQUIREMENTS.md` — what the platform must do (roles, F1–F12, lifecycle, non-functional, open items).
+- `docs/USER-MANUAL.md` — how to use it, one section per role.
 - `docs/phase-reports/` — one report per phase.
 
 ## Run locally
