@@ -250,7 +250,8 @@ def home(request: Request, p: Principal = Depends(web_principal), db: Session = 
         tiles.append(("Overdue in my scope", dash["overdue"]["count"], "/admin"))
         tiles.append(("At risk", dash["at_risk"]["count"], "/admin"))
         tiles.append(("Oldest unassigned", dash["oldest_unassigned"]["count"], "/admin"))
-    return page("home.html", shell(request, p, db, tiles=tiles))
+    recent = tickets.list_tickets(db, p, {"view": "mine", "page_size": 5})[0]
+    return page("home.html", shell(request, p, db, tiles=tiles, recent=recent))
 
 
 # ================================================================ S04 new ticket

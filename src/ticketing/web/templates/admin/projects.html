@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Projects{% endblock %}
+{% block crumbs %}Admin / Projects{% endblock %}
 {% block content %}
-<h1>Projects</h1>
+<div class="page-head"><div><h1>Projects</h1></div></div>
 {% if orgs %}
-<form method="post" action="/admin/projects" class="row panel" data-confirm="The key becomes the ticket-number prefix (KEY-1) and is locked once the first ticket exists. Create the project?">{{ csrf_field() }}
+<form method="post" action="/admin/projects" class="row filters" data-confirm="The key becomes the ticket-number prefix (KEY-1) and is locked once the first ticket exists. Create the project?">{{ csrf_field() }}
   <label>Organisation <select name="organization_id">{% for o in orgs %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select></label>
   <label>Name <input name="name" required></label>
   <label>Key (2–10 capitals or digits) <input name="key" required pattern="[A-Z0-9]{2,10}" maxlength="10"></label>
@@ -12,5 +13,5 @@
 </form>{% endif %}
 {% if rows %}<div class="tablewrap"><table><thead><tr><th>Key</th><th>Name</th><th>Organisation</th><th>Teams</th><th>Open tickets</th><th>Active</th></tr></thead><tbody>
 {% for x, c in rows %}<tr><td><a href="/admin/projects/{{ x.id }}">{{ x.key }}</a></td><td>{{ x.name }}</td><td>{{ org_names[x.organization_id] }}</td><td>{{ c.teams }}</td><td>{{ c.open_tickets }}</td><td>{{ 'yes' if x.is_active else 'no' }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No projects in your scope.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No projects in your scope.</div>{% endif %}
 {% endblock %}

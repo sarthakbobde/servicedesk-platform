@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import ticket_table with context %}
 {% block title %}Admin dashboard{% endblock %}
+{% block crumbs %}Admin / Dashboard{% endblock %}
 {% block content %}
-<h1>Admin dashboard</h1>
+<div class="page-head"><div><h1>Admin dashboard</h1></div></div>
 <div class="grid">
   <a class="tile" href="/tickets/all?overdue=true"><span class="n">{{ dash.overdue.count }}</span><span class="l">Overdue</span></a>
   <a class="tile" href="#at-risk"><span class="n">{{ dash.at_risk.count }}</span><span class="l">At risk (≥ {{ dash.at_risk.warning_percent }}% used)</span></a>

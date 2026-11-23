@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Calendars{% endblock %}
+{% block crumbs %}Admin / Calendars{% endblock %}
 {% block content %}
-<h1>Calendars</h1>
-<form method="post" action="/admin/calendars" class="row panel">{{ csrf_field() }}
+<div class="page-head"><div><h1>Calendars</h1></div></div>
+<form method="post" action="/admin/calendars" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" required></label><label>Time zone (IANA) <input name="time_zone" required placeholder="Europe/London"></label>
-  <label><span>Default</span><input type="checkbox" name="is_default" value="true"></label><button class="primary">Create</button>
+  <label><span>Default</span><input type="checkbox" name="is_default" value="true"></label><button class="primary" type="submit">Create</button>
 </form>
 <div class="tablewrap"><table><thead><tr><th>Name</th><th>Time zone</th><th>Default</th><th>People using it</th><th>SLA policies</th><th>Active</th></tr></thead><tbody>
 {% for c, u in rows %}<tr><td><a href="/admin/calendars/{{ c.id }}">{{ c.name }}</a></td><td>{{ c.time_zone }}</td><td>{{ 'default' if c.is_default else '' }}</td><td>{{ u.people }}</td><td>{{ u.sla_policies }}</td><td>{{ 'yes' if c.is_active else 'no' }}</td></tr>{% endfor %}

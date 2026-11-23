@@ -1,15 +1,16 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Notification channels{% endblock %}
+{% block crumbs %}Admin / Notification channels{% endblock %}
 {% block content %}
-<h1>Notification channels</h1>
+<div class="page-head"><div><h1>Notification channels</h1></div></div>
 <p class="muted">Secrets are never stored: settings name an environment variable that holds the SMTP password or the webhook URL.</p>
 {% for typ in ['EMAIL', 'CHAT_WEBHOOK'] %}
 <details class="panel"><summary><strong>Add {{ 'an email' if typ == 'EMAIL' else 'a chat webhook' }} channel</strong></summary>
 <form method="post" action="/admin/notification-channels" class="stack">{{ csrf_field() }}<input type="hidden" name="type" value="{{ typ }}">
 <label for="n-{{ typ }}">Name</label><input id="n-{{ typ }}" name="name" type="text" required>
 {% for k, spec in registry[typ].SPEC.items() %}<label for="{{ typ }}-{{ k }}">{{ spec[2] }}{% if not spec[1] %} (optional){% endif %}</label><input id="{{ typ }}-{{ k }}" name="set:{{ k }}" type="text" {% if spec[1] %}required{% endif %}>{% endfor %}
-<p><button class="primary">Add channel</button></p></form></details>
+<p><button class="primary" type="submit">Add channel</button></p></form></details>
 {% endfor %}
 <div class="tablewrap"><table><thead><tr><th>Channel</th><th>Type</th><th>Settings</th><th>Enabled</th><th>Last failure</th><th></th></tr></thead><tbody>
 {% for c in rows %}<tr><td>{{ c.name }}</td><td>{{ c.type|replace('_',' ')|lower }}</td>

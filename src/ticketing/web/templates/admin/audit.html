@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% from "macros.html" import pager with context %}
 {% block title %}Audit log{% endblock %}
+{% block crumbs %}Admin / Audit log{% endblock %}
 {% block content %}
-<h1>Audit log</h1>
-<form method="get" class="row panel">
+<div class="page-head"><div><h1>Audit log</h1></div></div>
+<form method="get" class="row filters">
   <label>Entity <input name="entity" value="{{ q.entity or '' }}" placeholder="team, user, setting…"></label>
   <label>Person (id) <input name="actor" value="{{ q.actor or '' }}" size="6"></label>
   <label>From <input type="date" name="from" value="{{ q['from'] or '' }}"></label>
@@ -15,5 +16,5 @@
 <td><code>{{ a.old_value|tojson if a.old_value else '' }}</code></td><td><code>{{ a.new_value|tojson if a.new_value else '' }}</code></td></tr>{% endfor %}
 </tbody></table></div>
 {{ pager(meta, '/admin/audit?' ~ (request.url.query|replace('page=' ~ meta.page, '')) ~ '&') }}
-{% else %}<p class="panel">No changes match the filters.</p>{% endif %}
+{% else %}<div class="panel empty">No changes match the filters.</div>{% endif %}
 {% endblock %}

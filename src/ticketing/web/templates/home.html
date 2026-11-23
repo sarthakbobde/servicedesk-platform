@@ -1,11 +1,24 @@
 {% extends "base.html" %}
+{% from "macros.html" import ticket_table with context %}
 {% block title %}Home{% endblock %}
+{% block crumbs %}Home{% endblock %}
 {% block content %}
-<h1>Hello, {{ me.name }}</h1>
+<div class="page-head">
+  <div>
+    <h1>Good to see you, {{ me.name.split()[0] }}</h1>
+    <div class="sub">Here is what needs your attention.</div>
+  </div>
+</div>
 <div class="grid">
 {% for label, n, href in tiles %}
-  <a class="tile" href="{{ href }}"><span class="n">{{ n if n is not none else 0 }}</span><span class="l">{{ label }}</span></a>
+  <a class="tile {% if label in ('Overdue', 'Overdue in my scope') and n %}alert{% endif %}" href="{{ href }}">
+    <span class="n {% if n is string %}small-n{% endif %}">{{ n if n is not none else 0 }}</span>
+    <span class="l">{{ label }}</span>
+  </a>
 {% endfor %}
 </div>
-<p style="margin-top:16px"><a class="btn" href="/tickets/new">Raise a ticket</a></p>
+<section>
+  <div class="card-head"><h2>My recent tickets</h2><a href="/tickets">View all</a></div>
+  {{ ticket_table(recent, ('number','title','priority','status','resolver','created'), empty='You have not raised any tickets yet.') }}
+</section>
 {% endblock %}

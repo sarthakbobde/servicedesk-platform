@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}{{ proj.key }}{% endblock %}
+{% block crumbs %}<a href="/admin/projects">Projects</a> / {{ proj.key }}{% endblock %}
 {% block content %}
-<h1>{{ proj.key }} · {{ proj.name }}</h1>
+<div class="page-head"><div><div class="eyebrow">Project</div><h1>{{ proj.key }} · {{ proj.name }}</h1></div><div class="actions">{{ active_toggle('/admin/projects/' ~ proj.id, proj.is_active, 'the project') }}</div></div>
 <p class="muted">{{ counts.teams }} teams · {{ counts.people }} people · {{ counts.open_tickets }} open of {{ counts.tickets }} tickets · {{ 'active' if proj.is_active else 'inactive' }}</p>
-<form method="post" action="/admin/projects/{{ proj.id }}" class="row panel">{{ csrf_field() }}
+<form method="post" action="/admin/projects/{{ proj.id }}" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" value="{{ proj.name }}"></label>
   <label>Key {% if proj.ticket_seq %}(locked){% endif %} <input name="key" value="{{ proj.key }}" {% if proj.ticket_seq %}readonly{% endif %}></label>
   <button type="submit">Save</button>
 </form>
-{{ active_toggle('/admin/projects/' ~ proj.id, proj.is_active, 'the project') }}
 <nav class="tabs" aria-label="Project sections" style="margin-top:12px">
 {% for k, l in [('settings','Settings'),('teams','Teams'),('people','People'),('product-users','Product users'),('credentials','API credentials')] %}
 <a href="?tab={{ k }}" {% if tab == k %}aria-current="page"{% endif %}>{{ l }}</a>{% endfor %}
@@ -28,29 +28,29 @@
 <p><button class="primary" type="submit">Save settings</button></p>
 </form>
 {% elif tab == 'teams' %}
-<form method="post" action="/admin/projects/{{ proj.id }}/teams" class="row panel">{{ csrf_field() }}<label>New team <input name="name" required></label><button class="primary">Add team</button></form>
+<form method="post" action="/admin/projects/{{ proj.id }}/teams" class="row filters">{{ csrf_field() }}<label>New team <input name="name" required></label><button class="primary" type="submit">Add team</button></form>
 {% if teams %}<div class="tablewrap"><table><thead><tr><th>Team</th><th>Active</th><th>Change</th></tr></thead><tbody>
 {% for tm in teams %}<tr><td>{{ tm.name }}</td><td>{{ 'yes' if tm.is_active else 'no' }}</td><td><form method="post" action="/admin/teams/{{ tm.id }}" class="inline">{{ csrf_field() }}<label class="sr" for="tn{{ tm.id }}">Name</label><input id="tn{{ tm.id }}" name="name" value="{{ tm.name }}"><button>Rename</button></form> {{ active_toggle('/admin/teams/' ~ tm.id, tm.is_active, tm.name) }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No teams yet. Add one above.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No teams yet. Add one above.</div>{% endif %}
 {% elif tab == 'people' %}
 <p class="actions"><a class="btn" href="/admin/users?project_id={{ proj.id }}">Find people</a> <a class="btn" href="/admin/role-assignments/bulk">Bulk add</a></p>
 {% if assignments %}<div class="tablewrap"><table><thead><tr><th>Person</th><th>Role</th><th>Scope</th><th>Shift calendar</th><th>Change</th></tr></thead><tbody>
 {% for a in assignments %}<tr><td><a href="/admin/users/{{ a.user_id }}">{{ names.get(a.user_id) }}</a></td><td>{{ a.role|replace('_',' ')|lower }}</td><td>{{ ('team ' ~ a.team.name) if a.team else 'project' }}</td>
 <td>{% if a.team_id %}<form method="post" action="/admin/role-assignments/{{ a.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="next" value="/admin/projects/{{ proj.id }}?tab=people"><label class="sr" for="c{{ a.id }}">Calendar</label><select id="c{{ a.id }}" name="calendar_id"><option value="">Default calendar</option>{% for c in calendars %}<option value="{{ c.id }}" {% if c.id == a.calendar_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select><button>Set</button></form>{% endif %}</td>
 <td><form method="post" action="/admin/role-assignments/{{ a.id }}" class="inline" data-confirm="Remove this role?">{{ csrf_field() }}<input type="hidden" name="next" value="/admin/projects/{{ proj.id }}?tab=people"><input type="hidden" name="is_active" value="false"><button>Remove</button></form></td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">Nobody holds a role in this project yet.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">Nobody holds a role in this project yet.</div>{% endif %}
 {% elif tab == 'product-users' %}
 <p class="muted">Product users are registered by the product through the API, or given a portal account on the Users screen when portal access is on.</p>
 {% if product_users %}<div class="tablewrap"><table><thead><tr><th>Name</th><th>Product ID</th><th>Email</th><th>Portal account</th><th>Active</th></tr></thead><tbody>
 {% for u in product_users %}<tr><td><a href="/admin/users/{{ u.id }}">{{ u.name }}</a></td><td>{{ u.external_id }}</td><td>{{ u.email or '' }}</td><td>{{ 'yes' if u.password_hash else 'no' }}</td><td>{{ 'yes' if u.is_active else 'no' }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No product users yet.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No product users yet.</div>{% endif %}
 {% elif tab == 'credentials' %}
 {% if new_secret %}<div class="once" role="alert"><p><strong>Copy the secret now. It will not be shown again.</strong></p>
 <p>Key: <code class="secret">{{ new_key }}</code></p><p>Secret: <code class="secret" id="secret">{{ new_secret }}</code> <button type="button" data-copy="secret">Copy</button></p></div>{% endif %}
-<form method="post" action="/admin/projects/{{ proj.id }}/credentials" class="row panel">{{ csrf_field() }}<label>Name <input name="name" required></label><button class="primary">Create credential</button></form>
+<form method="post" action="/admin/projects/{{ proj.id }}/credentials" class="row filters">{{ csrf_field() }}<label>Name <input name="name" required></label><button class="primary" type="submit">Create credential</button></form>
 {% if credentials %}<div class="tablewrap"><table><thead><tr><th>Name</th><th>Key</th><th>Last used</th><th>Active</th><th></th></tr></thead><tbody>
 {% for c in credentials %}<tr><td>{{ c.name }}</td><td><code>{{ c.key_prefix }}</code></td><td>{{ c.last_used_at|dt if c.last_used_at else 'never' }}</td><td>{{ 'yes' if c.is_active else 'revoked' }}</td>
 <td>{% if c.is_active %}<form method="post" action="/admin/credentials/{{ c.id }}" class="inline" data-confirm="Revoke {{ c.name }}? Products using it stop working at once.">{{ csrf_field() }}<input type="hidden" name="is_active" value="false"><button>Revoke</button></form>{% endif %}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No credentials yet.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No credentials yet.</div>{% endif %}
 {% endif %}
 {% endblock %}

@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}{{ pol.name }}{% endblock %}
+{% block crumbs %}<a href="/admin/sla-policies">SLA policies</a> / {{ pol.name }}{% endblock %}
 {% block content %}
-<h1>{{ pol.name }}</h1>
+<div class="page-head"><div><h1>{{ pol.name }}</h1></div></div>
 <p class="muted">{{ pol.priority.name }} · {{ pol.ticket_type.name if pol.ticket_type else 'Default policy (all types)' }} · calendar {{ pol.calendar.name if pol.calendar else 'default' }} · {{ 'active' if pol.is_active else 'inactive' }}. Changes apply to tickets created afterwards.</p>
-<form method="post" action="/admin/sla-policies/{{ pol.id }}" class="row panel">{{ csrf_field() }}<label>Name <input name="name" value="{{ pol.name }}"></label><button>Save</button></form>
+<form method="post" action="/admin/sla-policies/{{ pol.id }}" class="row filters">{{ csrf_field() }}<label>Name <input name="name" value="{{ pol.name }}"></label><button>Save</button></form>
 {{ active_toggle('/admin/sla-policies/' ~ pol.id, pol.is_active, 'the policy') }}
 <section class="panel"><h2>Steps</h2>
 <p class="muted">Minutes are cumulative from the SLA start and never decrease; the last step is the total and must stop at RESOLVED. Leave a row empty to remove it.</p>
@@ -15,7 +16,7 @@
 <td><label class="sr" for="m{{ i }}">Minutes</label><input id="m{{ i }}" name="minutes{{ i }}" type="number" min="1" value="{{ s.minutes if s else '' }}" style="width:7em"> {% if s %}<span class="muted">{{ s.minutes|mins }}</span>{% endif %}</td>
 <td><label class="sr" for="st{{ i }}">Stop status</label><select id="st{{ i }}" name="stop{{ i }}">{% for c in stop_choices %}<option {% if s and s.stop_status_code == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></td></tr>{% endfor %}
 </tbody></table>
-<p><button class="primary">Save steps</button></p></form>
+<p><button class="primary" type="submit">Save steps</button></p></form>
 </section>
 {% for s in steps %}
 <section class="panel"><h2>Escalation rules · {{ s.name }}</h2>
@@ -32,7 +33,7 @@
 <td><select name="target{{ i }}" aria-label="Target"><option value="">—</option>{% for x in targets %}<option {% if r and r.target_type == x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></td>
 <td><select name="target_id{{ i }}" aria-label="Named user or team"><option value="">—</option>{% for u in users %}<option value="{{ u.id }}" {% if r and r.target_type == 'USER' and r.target_id == u.id %}selected{% endif %}>user {{ u.name }}</option>{% endfor %}{% for tm in teams %}<option value="{{ tm.id }}" {% if r and r.target_type == 'TEAM' and r.target_id == tm.id %}selected{% endif %}>team {{ tm.name }}</option>{% endfor %}</select></td></tr>{% endfor %}
 </tbody></table></div>
-<p><button class="primary">Save rules</button> <span class="muted">Clear the trigger of a row to remove it.</span></p></form>
+<p><button class="primary" type="submit">Save rules</button> <span class="muted">Clear the trigger of a row to remove it.</span></p></form>
 </section>
 {% endfor %}
 {% endblock %}

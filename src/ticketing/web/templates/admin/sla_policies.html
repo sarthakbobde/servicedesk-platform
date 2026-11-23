@@ -1,18 +1,19 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}SLA policies{% endblock %}
+{% block crumbs %}Admin / SLA policies{% endblock %}
 {% block content %}
-<h1>SLA policies</h1>
-<form method="post" action="/admin/sla-policies" class="row panel">{{ csrf_field() }}
+<div class="page-head"><div><h1>SLA policies</h1></div></div>
+<form method="post" action="/admin/sla-policies" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" required></label>
   <label>Priority <select name="priority_id">{% for pr in priorities %}<option value="{{ pr.id }}">{{ pr.name }}</option>{% endfor %}</select></label>
   <label>Ticket type <select name="ticket_type_id">{% if 'admin.platform' in caps %}<option value="">Default (all types)</option>{% endif %}{% for tt, pr in types %}<option value="{{ tt.id }}">{{ pr.key }} · {{ tt.name }}</option>{% endfor %}</select></label>
   {% if calendars %}<label>Calendar <select name="calendar_id"><option value="">Default calendar</option>{% for c in calendars %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></label>{% endif %}
-  <button class="primary">Create</button>
+  <button class="primary" type="submit">Create</button>
 </form>
 <p><a href="?missing=1">Show priority and type combinations without a policy</a></p>
 {% if missing is not none %}<section class="panel"><h2>Without a policy</h2>{% if missing %}<ul>{% for m in missing %}<li>{{ m.priority.name }} × {{ m.type.name }}</li>{% endfor %}</ul>{% else %}<p>Every combination is covered.</p>{% endif %}</section>{% endif %}
 {% if rows %}<div class="tablewrap"><table><thead><tr><th>Name</th><th>Priority</th><th>Type</th><th>Total</th><th>Calendar</th><th>Active</th></tr></thead><tbody>
 {% for x in rows %}<tr><td><a href="/admin/sla-policies/{{ x.id }}">{{ x.name }}</a></td><td>{{ x.priority.name }}</td><td>{{ x.ticket_type.name if x.ticket_type else 'Default' }}</td><td>{{ x.total_minutes|mins if x.total_minutes else 'no steps' }}</td><td>{{ x.calendar.name if x.calendar else 'default' }}</td><td>{{ 'yes' if x.is_active else 'no' }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No policies in your scope.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No policies in your scope.</div>{% endif %}
 {% endblock %}

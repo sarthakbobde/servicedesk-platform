@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}Organisations{% endblock %}
+{% block crumbs %}Admin / Organisations{% endblock %}
 {% block content %}
-<h1>Organisations</h1>
+<div class="page-head"><div><h1>Organisations</h1></div></div>
 {% if 'admin.platform' in caps %}
-<form method="post" action="/admin/organizations" class="row panel">{{ csrf_field() }}
+<form method="post" action="/admin/organizations" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" required></label>
   <label>Type <select name="type"><option>CLIENT</option><option>INTERNAL</option></select></label>
   <button class="primary" type="submit">Create</button>
@@ -12,5 +13,5 @@
 {% if rows %}<div class="tablewrap"><table><thead><tr><th>Name</th><th>Type</th><th>Projects</th><th>Active</th>{% if 'admin.platform' in caps %}<th>Change</th>{% endif %}</tr></thead><tbody>
 {% for o in rows %}<tr><td>{{ o.name }}</td><td>{{ o.type|lower }}</td><td><a href="/admin/projects?organization_id={{ o.id }}">{{ counts[o.id] }}</a></td><td>{{ 'yes' if o.is_active else 'no' }}</td>
 {% if 'admin.platform' in caps %}<td><form method="post" action="/admin/organizations/{{ o.id }}" class="inline">{{ csrf_field() }}<label class="sr" for="on{{ o.id }}">Name</label><input id="on{{ o.id }}" name="name" value="{{ o.name }}"><button>Rename</button></form> {{ active_toggle('/admin/organizations/' ~ o.id, o.is_active, o.name) }}</td>{% endif %}</tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No organisations. Create one above.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No organisations. Create one above.</div>{% endif %}
 {% endblock %}

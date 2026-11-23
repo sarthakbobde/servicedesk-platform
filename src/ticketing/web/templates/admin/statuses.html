@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Statuses{% endblock %}
+{% block crumbs %}Admin / Statuses{% endblock %}
 {% block content %}
-<h1>Statuses</h1>
+<div class="page-head"><div><h1>Statuses</h1></div></div>
 <p class="muted">Code, order and category of the nine core statuses are locked; only the name can change. Transition rules are not editable.</p>
 <div class="tablewrap"><table><thead><tr><th>Order</th><th>Code</th><th>Category</th><th>Name</th></tr></thead><tbody>
 {% for s in rows %}<tr><td>{{ s.sort_order }}</td><td><code>{{ s.code }}</code></td><td>{{ s.category|lower }}</td>

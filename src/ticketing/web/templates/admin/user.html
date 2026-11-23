@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}{{ user.name }}{% endblock %}
+{% block crumbs %}<a href="/admin/users">Users</a> / {{ user.name }}{% endblock %}
 {% block content %}
-<h1>{{ user.name }}</h1>
+<div class="page-head"><div><h1>{{ user.name }}</h1></div></div>
 {% if temp %}<div class="once" role="alert"><p><strong>Temporary password — copy it now. It will not be shown again.</strong> The person must change it at first sign-in.</p>
 <p><code class="secret" id="temp">{{ temp }}</code> <button type="button" data-copy="temp">Copy</button></p></div>{% endif %}
 <div class="cols">

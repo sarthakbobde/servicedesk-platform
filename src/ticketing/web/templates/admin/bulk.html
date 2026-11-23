@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Bulk add people{% endblock %}
+{% block crumbs %}Admin / Bulk add people{% endblock %}
 {% block content %}
-<h1>Bulk add people</h1>
+<div class="page-head"><div><h1>Bulk add people</h1></div></div>
 {% if result %}<section class="panel" role="status"><h2>Result</h2>
 <p>Created: {{ result.created|length }} · Skipped as duplicates: {{ result.skipped|length }} · Refused: {{ result.refused|length }}</p>
 <ul>{% for r in result.created %}<li>{{ names.get(r.user_id) }} — created</li>{% endfor %}{% for r in result.skipped %}<li>{{ names.get(r.user_id) }} — skipped (already holds it)</li>{% endfor %}{% for r in result.refused %}<li class="bad">{{ names.get(r.user_id) }} — refused: {{ r.reason }}</li>{% endfor %}</ul></section>{% endif %}

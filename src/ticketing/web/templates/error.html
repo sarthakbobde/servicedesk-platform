@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Problem{% endblock %}
-{% block content %}
-<div class="panel">
-<h1>{% if kind == 'missing' %}Not available{% elif kind == 'expired' %}Session expired{% elif kind == 'conflict' %}Updated meanwhile{% else %}Something went wrong{% endif %}</h1>
-<p>{{ message }}</p>
-<p><a class="btn" href="/">Return to home</a></p>
+{% from "icons.html" import icon %}
+{% block bare %}
+<div class="auth">
+  <div class="auth-card" style="text-align:center">
+    <span class="brand" style="justify-content:center"><span class="brand-mark">{{ icon("logo", 18) }}</span>Service Desk</span>
+    <h1>{% if kind == 'missing' %}Not available{% elif kind == 'expired' %}Session expired{% elif kind == 'conflict' %}Updated meanwhile{% else %}Something went wrong{% endif %}</h1>
+    <p class="muted" style="margin:8px 0 22px">{{ message }}</p>
+    <a class="btn primary" href="/">Return to home</a>
+  </div>
 </div>
 {% endblock %}

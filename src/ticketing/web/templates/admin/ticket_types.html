@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}Ticket types{% endblock %}
+{% block crumbs %}Admin / Ticket types{% endblock %}
 {% block content %}
-<h1>Ticket types</h1>
-<form method="post" action="/admin/ticket-types" class="row panel">{{ csrf_field() }}
+<div class="page-head"><div><h1>Ticket types</h1></div></div>
+<form method="post" action="/admin/ticket-types" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" required></label>
   <label>Owning team <select name="team_id">{% for tm, pr in teams %}<option value="{{ tm.id }}">{{ pr.key }} · {{ tm.name }}</option>{% endfor %}</select></label>
   <label>Assignment <select name="assignment_mode"><option value="MANUAL">Manual (manager assigns)</option><option value="AUTO">Auto (on-shift resolver)</option></select></label>
   <label>Description <input name="description"></label>
-  <button class="primary">Add</button>
+  <button class="primary" type="submit">Add</button>
 </form>
 {% if rows %}<div class="tablewrap"><table><thead><tr><th>Project</th><th>Name</th><th>Owning team</th><th>Assignment</th><th>Active</th><th>Change (applies to new tickets only)</th></tr></thead><tbody>
 {% for t in rows %}<tr><td>{{ proj_keys[t.project_id] }}</td><td>{{ t.name }}</td><td>{{ team_names[t.team_id] }}</td><td>{{ t.assignment_mode|lower }}</td><td>{{ 'yes' if t.is_active else 'no' }}</td>
@@ -17,5 +18,5 @@
 <label class="sr" for="tt{{ t.id }}">Team</label><select id="tt{{ t.id }}" name="team_id">{% for tm, pr in teams if tm.project_id == t.project_id %}<option value="{{ tm.id }}" {% if tm.id == t.team_id %}selected{% endif %}>{{ tm.name }}</option>{% endfor %}</select>
 <label class="sr" for="tm{{ t.id }}">Mode</label><select id="tm{{ t.id }}" name="assignment_mode"><option {% if t.assignment_mode == 'MANUAL' %}selected{% endif %}>MANUAL</option><option {% if t.assignment_mode == 'AUTO' %}selected{% endif %}>AUTO</option></select>
 <button>Save</button></form> {{ active_toggle('/admin/ticket-types/' ~ t.id, t.is_active, t.name) }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="panel">No ticket types yet. Add one above.</p>{% endif %}
+</tbody></table></div>{% else %}<div class="panel empty">No ticket types yet. Add one above.</div>{% endif %}
 {% endblock %}

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}My account{% endblock %}
+{% block crumbs %}My account{% endblock %}
 {% block content %}
-<h1>My account</h1>
+<div class="page-head"><div><h1>My account</h1></div></div>
 {% if force %}<p class="flash err" role="alert">Choose a new password before you continue.</p>{% endif %}
 <div class="cols">
 <section class="panel">

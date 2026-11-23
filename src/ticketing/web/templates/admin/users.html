@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, pager with context %}
 {% block title %}Users{% endblock %}
+{% block crumbs %}Admin / Users{% endblock %}
 {% block content %}
-<h1>Users</h1>
-<form method="get" class="row panel" aria-label="Search">
+<div class="page-head"><div><h1>Users</h1></div></div>
+<form method="get" class="row filters" aria-label="Search">
   <label>Search <input type="search" name="q" value="{{ q.q or '' }}"></label>
   <label>Type <select name="user_type"><option value="">Any</option><option value="MEMBER" {% if q.user_type == 'MEMBER' %}selected{% endif %}>Member</option><option value="PRODUCT_USER" {% if q.user_type == 'PRODUCT_USER' %}selected{% endif %}>Product user</option></select></label>
   <label>Organisation <select name="organization_id"><option value="">Any</option>{% for o in orgs %}<option value="{{ o.id }}" {% if q.organization_id == o.id|string %}selected{% endif %}>{{ o.name }}</option>{% endfor %}</select></label>
@@ -27,5 +28,5 @@
 <td>{{ org_names.get(u.organization_id) if u.organization_id else proj_keys.get(u.project_id) }}</td><td>{{ 'yes' if u.is_active else 'no' }}</td></tr>{% endfor %}
 </tbody></table></div>
 {{ pager(meta, '/admin/users?' ~ (request.url.query|replace('page=' ~ meta.page, '')) ~ '&') }}
-{% else %}<p class="panel">No users match. Change the search or create a user.</p>{% endif %}
+{% else %}<div class="panel empty">No users match. Change the search or create a user.</div>{% endif %}
 {% endblock %}

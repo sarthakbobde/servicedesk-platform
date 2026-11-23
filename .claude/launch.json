@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "ticketing",
-      "runtimeExecutable": "C:/Users/sbobd/.venvs/ticketing/Scripts/uvicorn.exe",
+      "runtimeExecutable": ".venv/Scripts/uvicorn.exe",
       "runtimeArgs": ["ticketing.main:app", "--port", "8765", "--app-dir", "src"],
       "port": 8765
     }

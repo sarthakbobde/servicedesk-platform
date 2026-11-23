@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% from "macros.html" import ticket_table, act_button with context %}
 {% block title %}My work{% endblock %}
+{% block crumbs %}My work{% endblock %}
 {% block content %}
-<h1>My work</h1>
-{% if not total %}<p class="panel">Nothing assigned. Check the <a href="/queue">queue</a>.</p>{% endif %}
+<div class="page-head"><div><h1>My work</h1></div></div>
+{% if not total %}<div class="panel empty">Nothing assigned. Check the <a href="/queue">queue</a>.</div>{% endif %}
 {% macro row_actions(t) %}
   {% if 'start' in t.allowed_actions %}{{ act_button(t, 'start', 'Start', '/work') }}{% endif %}
   {% if 'resolve' in t.allowed_actions %}<a class="btn" href="/tickets/{{ t.id }}#dlg-resolve">Resolve…</a>{% endif %}

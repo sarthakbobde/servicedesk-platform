@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, active_toggle with context %}
 {% block title %}{{ cal.name }}{% endblock %}
+{% block crumbs %}<a href="/admin/calendars">Calendars</a> / {{ cal.name }}{% endblock %}
 {% block content %}
-<h1>{{ cal.name }} <span class="muted">({{ cal.time_zone }})</span></h1>
+<div class="page-head"><div><h1>{{ cal.name }} <span class="muted">({{ cal.time_zone }})</span></h1></div></div>
 <p class="muted">{{ usage.people }} people · {{ usage.sla_policies }} SLA policies{% if cal.is_default %} · default calendar{% endif %}</p>
-<form method="post" action="/admin/calendars/{{ cal.id }}" class="row panel">{{ csrf_field() }}
+<form method="post" action="/admin/calendars/{{ cal.id }}" class="row filters">{{ csrf_field() }}
   <label>Name <input name="name" value="{{ cal.name }}"></label><label>Time zone <input name="time_zone" value="{{ cal.time_zone }}"></label><button>Save</button>
 </form>
 {% if not cal.is_default %}<div class="actions"><form method="post" action="/admin/calendars/{{ cal.id }}" class="inline">{{ csrf_field() }}<input type="hidden" name="is_default" value="true"><button>Make default</button></form> {{ active_toggle('/admin/calendars/' ~ cal.id, cal.is_active, cal.name) }}</div>{% endif %}
@@ -17,7 +18,7 @@
 <tr><th scope="row">{{ name }}</th>{% for i in range(3) %}{% set w = grid[d][i] if grid[d]|length > i else none %}
 <td><label class="sr" for="d{{ d }}s{{ i }}">{{ name }} window {{ i+1 }} start</label><input id="d{{ d }}s{{ i }}" name="d{{ d }}s{{ i }}" value="{{ hhmm(w.start_minute) if w else '' }}" size="5" placeholder="09:00">–<label class="sr" for="d{{ d }}e{{ i }}">end</label><input id="d{{ d }}e{{ i }}" name="d{{ d }}e{{ i }}" value="{{ hhmm(w.end_minute) if w else '' }}" size="5" placeholder="17:00"></td>{% endfor %}</tr>{% endfor %}
 </tbody></table>
-<p><button class="primary">Save weekly pattern</button></p></form>
+<p><button class="primary" type="submit">Save weekly pattern</button></p></form>
 </section>
 <section class="panel"><h2>Next 14 days</h2>
 <table><tbody>{% for r in preview %}<tr><td>{{ r.date }}</td><td>{{ r.windows|join(', ') or 'off' }}</td><td>{{ r.minutes|mins }}</td></tr>{% endfor %}</tbody></table>
@@ -26,7 +27,7 @@
 <section class="panel"><h2>Holidays</h2>
 <form method="post" action="/admin/calendars/{{ cal.id }}/holidays" class="row">{{ csrf_field() }}
 <label>Date <input type="date" name="date" required></label><label>Name <input name="name" required></label>
-<label>Off from (partial day) <input name="start" size="5" placeholder="13:00"></label><label>Off until <input name="end" size="5" placeholder="17:00"></label><button class="primary">Add</button></form>
+<label>Off from (partial day) <input name="start" size="5" placeholder="13:00"></label><label>Off until <input name="end" size="5" placeholder="17:00"></label><button class="primary" type="submit">Add</button></form>
 {% if holidays %}<table style="margin-top:8px"><tbody>{% for h in holidays %}<tr><td>{{ h.day }}</td><td>{{ h.name }}</td><td>{{ 'whole day' if h.start_minute is none else hhmm(h.start_minute) ~ '–' ~ hhmm(h.end_minute) ~ ' off' }}</td><td>{{ '' if h.is_active else 'removed' }}</td>
 <td>{{ active_toggle('/admin/calendar-holidays/' ~ h.id, h.is_active, h.name) }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="muted">No holidays.</p>{% endif %}
 </section>

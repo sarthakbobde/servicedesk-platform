@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field, pager with context %}
 {% block title %}Notifications{% endblock %}
+{% block crumbs %}Notifications{% endblock %}
 {% block content %}
-<h1>Notifications</h1>
-<form method="post" action="/notifications/read-all">{{ csrf_field() }}<button type="submit">Mark all read</button></form>
+<div class="page-head"><div><h1>Notifications</h1><div class="sub">{{ unread }} unread</div></div><form method="post" action="/notifications/read-all" class="inline">{{ csrf_field() }}<button type="submit">Mark all read</button></form></div>
 {% if rows %}
-<div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Alert</th><th>Ticket</th><th>Time</th><th></th></tr></thead><tbody>
+<div class="tablewrap"><table><thead><tr><th>Alert</th><th>Ticket</th><th>Time</th><th></th></tr></thead><tbody>
 {% for n in rows %}
 <tr class="{{ '' if n.is_read else 'unread' }}">
 <td>{% if not n.is_read %}<span class="sr">Unread: </span>{% endif %}{{ n.type|replace('_',' ')|lower|capitalize }} — {{ n.body }}</td>
 <td>{% if refs.get(n.ticket_id) %}{{ refs[n.ticket_id].number }} · {{ refs[n.ticket_id].title }}{% endif %}</td>
 <td>{{ n.created_at|dt }}</td>
-<td><form method="post" action="/notifications/{{ n.id }}/open" class="inline">{{ csrf_field() }}<button type="submit">Open</button></form></td>
+<td><form method="post" action="/notifications/{{ n.id }}/open" class="inline">{{ csrf_field() }}<button type="submit" class="sm">Open</button></form></td>
 </tr>{% endfor %}</tbody></table></div>
 {{ pager(meta, '/notifications?') }}
-{% else %}<p class="panel">No alerts yet.</p>{% endif %}
+{% else %}<div class="panel empty">No alerts yet.</div>{% endif %}
 {% endblock %}

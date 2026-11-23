@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import ticket_table, csrf_field with context %}
 {% block title %}Team board{% endblock %}
+{% block crumbs %}Team board{% endblock %}
 {% block content %}
-<h1>Team board</h1>
+<div class="page-head"><div><h1>Team board</h1></div></div>
 {% if teams|length > 1 %}
-<form method="get" class="row panel"><label>Team <select name="team" data-autosubmit>{% for tm in teams %}<option value="{{ tm.id }}" {% if team_id == tm.id %}selected{% endif %}>{{ tm.name }}</option>{% endfor %}</select></label><noscript><button>Show</button></noscript></form>
+<form method="get" class="row filters"><label>Team <select name="team" data-autosubmit>{% for tm in teams %}<option value="{{ tm.id }}" {% if team_id == tm.id %}selected{% endif %}>{{ tm.name }}</option>{% endfor %}</select></label><noscript><button>Show</button></noscript></form>
 {% endif %}
 <div class="cols">
 <div>

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
 {% block title %}Settings{% endblock %}
+{% block crumbs %}Admin / Settings{% endblock %}
 {% block content %}
-<h1>Settings</h1>
+<div class="page-head"><div><h1>Settings</h1></div></div>
 <p class="muted">Global values. Projects can override project-scope settings on their Settings tab. Every change is audited.</p>
 <form method="post" action="/admin/settings">{{ csrf_field() }}
 <div class="tablewrap"><table><thead><tr><th>Key</th><th>Meaning</th><th>Scope</th><th>Default</th><th>Current</th><th>Last changed</th></tr></thead><tbody>
@@ -11,5 +12,5 @@
 {% else %}<label class="sr" for="g-{{ s.key }}">{{ s.key }}</label><input id="g-{{ s.key }}" name="s:{{ s.key }}" value="{{ s.value }}" {% if s.min is not none %}type="number" min="{{ s.min }}" max="{{ s.max }}"{% endif %} style="width:9em">{% if s.min is not none %} <span class="muted">{{ s.min }}–{{ s.max }}</span>{% endif %}{% endif %}</td>
 <td>{% if s.updated_at %}{{ names.get(s.updated_by, '') }} {{ s.updated_at|dt }}{% else %}<span class="muted">never</span>{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
-<p><button class="primary">Save settings</button></p></form>
+<p><button class="primary" type="submit">Save settings</button></p></form>
 {% endblock %}

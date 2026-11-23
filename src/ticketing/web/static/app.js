@@ -21,6 +21,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById(b.dataset.copy);
     if (el && navigator.clipboard) navigator.clipboard.writeText(el.textContent.trim()).then(() => { b.textContent = "Copied"; });
   }));
+  // Dropdown menus close on outside click, on Escape, and after choosing an item.
+  const menus = document.querySelectorAll("details.menu");
+  document.addEventListener("click", (e) => menus.forEach((m) => { if (!m.contains(e.target)) m.open = false; }));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") menus.forEach((m) => { m.open = false; }); });
+  menus.forEach((m) => m.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => { m.open = false; })));
   const typeSel = document.getElementById("type_id");
   if (typeSel) {
     const show = () => { const o = typeSel.selectedOptions[0]; const t = document.getElementById("team-note");
