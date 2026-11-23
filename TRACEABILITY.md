@@ -34,6 +34,7 @@ Every function of the plan mapped to its module, endpoints, screens and tests. M
 | F4.7 Shifts | `services/routing.py: on_shift`, `worktime.py` | API-031, API-040 | S16, S18 | `test_lifecycle.py::test_two_shift_calendars_only_on_shift_is_picked` |
 | F4.8 Re-routing | `services/tickets.py: _release, _reopen` | API-056, API-058 | S06 | `test_lifecycle.py::test_release_skips_releasing_resolver_once_and_reassign`, `::test_release_only_candidate_waits` |
 | F5 Lifecycle (15 + 2) | `services/tickets.py` | API-046..060 | S06, S07, S08, S09 | `test_lifecycle.py`, `test_matrix.py`, `test_portal.py::test_screen_and_api_give_the_same_permission_outcome` |
+| Child tickets (P5-17) | `services/tickets.py: create_child, can_add_child, children_block` | API-111, API-043 | S04, S06 | `test_children.py` (flow, one level, role denial, requester view, no-reply, portal) |
 | F6.1 Policy match | `services/sla.py: match_policy` | API-092..097 | S25, S26 | `test_sla.py::test_type_policy_beats_default_and_no_policy` |
 | F6.2–6.5 Timers, working time, pauses, stop | `services/sla.py` | API-088 | S06 | `test_sla.py::test_due_times_from_the_policy_calendar`, `::test_assignment_met_hold_pauses_and_resume_keeps_remaining`, `::test_quick_fix_closes_earlier_steps`, `test_worktime.py` |
 | F6.6 Outcome | `services/sla.py: breach_sweep` | API-088 | S06 | `test_sla.py::test_breach_set_once_and_kept_after_stop`, `::test_reject_and_withdraw_skip_unreached_steps` |

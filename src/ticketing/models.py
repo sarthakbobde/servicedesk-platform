@@ -261,6 +261,7 @@ class Ticket(Base):
     sla_cycle: Mapped[int] = mapped_column(Integer, default=1, server_default=text("1"))
     manual_paused: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     manual_pause_reason: Mapped[str | None] = mapped_column(Text)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("ticket.id"), index=True)  # child tickets, one level
     __table_args__ = (
         UniqueConstraint("project_id", "number", name="uq_ticket_number"),
         CheckConstraint("source in ('PORTAL','API')", name="ck_ticket_source"),

@@ -288,6 +288,15 @@ td a:first-child { font-weight: 550; }
 .flash.err::before { content: "!"; }
 
 /* ------------------------------------------------------------------ key-value, progress, history */
+/* child tickets */
+.children { list-style: none; margin: 0; padding: 0; }
+.children li { display: grid; grid-template-columns: max-content 1fr auto auto; align-items: center; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.children li:last-child { border-bottom: 0; padding-bottom: 0; }
+.children li:first-child { padding-top: 0; }
+.children .num { font-family: var(--mono); font-size: 13px; }
+.children .ttl { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .children li { grid-template-columns: max-content 1fr; } }
+
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 10px 18px; margin: 0; }
 .kv dt { color: var(--muted); font-size: 13px; }
 .kv dd { margin: 0; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }

@@ -257,29 +257,48 @@ def home(request: Request, p: Principal = Depends(web_principal), db: Session = 
 # ================================================================ S04 new ticket
 @router.get("/tickets/new")
 def new_ticket(request: Request, p: Principal = Depends(web_principal), db: Session = Depends(get_db)):
-    projects = reference.projects_for(db, p)
-    sel = current_project(request, p, db)
-    if sel not in [x["id"] for x in projects]:
-        sel = projects[0]["id"] if projects else None
+    values = dict(request.query_params)
+    parent = None
+    if values.get("parent"):  # a child ticket of an open ticket: same project, any type
+        pt = tickets.load(db, p, values["parent"])
+        if not tickets.can_add_child(p, pt):
+            raise AppError("forbidden")
+        parent = tickets.view(tickets.Ctx(db), p, pt, with_actions=False)
+        projects = [parent["project"]]
+        sel = pt.project_id
+        values.setdefault("priority_id", str(pt.priority_id))
+    else:
+        projects = reference.projects_for(db, p)
+        sel = current_project(request, p, db)
+        if sel not in [x["id"] for x in projects]:
+            sel = projects[0]["id"] if projects else None
     types = reference.ticket_types_for(db, p, sel) if sel else []
     choose_priority = not p.is_product_user or (sel and settings.get(db, "product_user.can_set_priority", sel))
     return page("new_ticket.html", shell(request, p, db, raise_projects=projects, project_id=sel, types=types,
                                          priorities=cfg.list_priorities(db, active_only=True),
                                          choose_priority=choose_priority, key=str(uuid.uuid4()),
-                                         values=dict(request.query_params)))
+                                         values=values, parent=parent))
 
 
 @router.post("/tickets/new")
 async def new_ticket_submit(request: Request, p: Principal = Depends(web_principal), db: Session = Depends(get_db)):
     form = await check_csrf(request, p)
     data = {k: form.get(k) or None for k in ("project_id", "type_id", "priority_id", "title", "description")}
+    parent = form.get("parent") or None
     try:
-        t, _ = tickets.create_ticket(db, p, data, "PORTAL", form.get("idempotency_key"))
+        if parent:
+            t = tickets.create_child(db, p, parent, data, "PORTAL")
+        else:
+            t, _ = tickets.create_ticket(db, p, data, "PORTAL", form.get("idempotency_key"))
     except AppError as e:
+        if e.code in ("forbidden", "not_found"):
+            raise
         q = {k: v for k, v in data.items() if v}
+        if parent:
+            q["parent"] = parent
         q["err"] = err_text(e)
         return RedirectResponse("/tickets/new?" + urlencode(q), status_code=303)
-    return back(f"/tickets/{t.id}", msg="Ticket raised.")
+    return back(f"/tickets/{t.id}", msg="Child ticket created." if parent else "Ticket raised.")
 
 
 # ================================================================ lists S05 S07 S08 S09 S10
@@ -405,7 +424,7 @@ LABELS = {"claim": "Claim", "assign": "Assign", "start": "Start", "hold": "Hold"
 def ticket_page(request, p, db, ref, error=None, open_dialog=None, typed=None, status=200):
     t = tickets.load(db, p, ref)
     ctx = tickets.Ctx(db)
-    v = tickets.view(ctx, p, t)
+    v = tickets.view(ctx, p, t, with_relatives=True)
     evs, _, _ = tickets.events(db, p, t.id, 1, 100)
     staff = "nearest_due" in v
     timers = sla.read_timers(db, p, t) if staff else None

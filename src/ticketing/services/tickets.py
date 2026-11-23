@@ -55,6 +55,7 @@ FROM = {
 ACTIONS = tuple(FROM)
 REQUESTER_ACTIONS = ("respond", "withdraw", "reopen")
 SLA_ACTIONS = ("sla-pause", "sla-resume", "sla-extend")
+CHILD_BLOCKED = ("resolve", "reject", "withdraw")  # a parent finishes only after its children
 TEXT_MAX = 2000
 
 
@@ -93,6 +94,12 @@ def set_status(db: Session, t: Ticket, new: str, action: str):
     t.status_code = new
     t.updated_at = clock.now()
     sla.on_transition(db, t, old, new, action)
+    if t.parent_id and (new in FINISHED) != (old in FINISHED) and new != CLOSED:
+        parent = db.get(Ticket, t.parent_id)
+        key = db.scalar(select(Project.key).where(Project.id == t.project_id))
+        add_event(db, parent, "child_finished" if new in FINISHED else "child_reopened", None, parent.status_code,
+                  parent.status_code, note_text=f"{key}-{t.number}: {t.title}", visibility="INTERNAL",
+                  data={"child_id": t.id, "child_status": new})
     return old
 
 
@@ -205,6 +212,25 @@ class Ctx:
                                                              SlaTimer.is_current.is_(True))):
                 self._timers[tm.ticket_id].append(tm)
 
+    def open_children(self, ticket_id) -> list:
+        if not hasattr(self, "_open_children"):
+            self._open_children = {}
+        if ticket_id not in self._open_children:
+            self._open_children[ticket_id] = list(self.db.scalars(select(Ticket).where(
+                Ticket.parent_id == ticket_id, Ticket.status_code.in_(ACTIVE)).order_by(Ticket.number)))
+        return self._open_children[ticket_id]
+
+    def prefetch_open_children(self, ticket_ids):
+        if not hasattr(self, "_open_children"):
+            self._open_children = {}
+        ids = [i for i in ticket_ids if i not in self._open_children]
+        for i in ids:
+            self._open_children[i] = []
+        if ids:
+            for c in self.db.scalars(select(Ticket).where(Ticket.parent_id.in_(ids), Ticket.status_code.in_(ACTIVE))
+                                     .order_by(Ticket.number)):
+                self._open_children[c.parent_id].append(c)
+
     def setting(self, key, project_id):
         k = (key, project_id)
         if k not in self._settings:
@@ -233,6 +259,8 @@ def state_allows(ctx: Ctx, action: str, t: Ticket) -> bool:
         return t.resolver_id is None and t.waiting_for_candidate and ctx.type(t.type_id).assignment_mode == "AUTO"
     if action == "reopen":
         return reopen_problem(ctx, t) is None
+    if action in CHILD_BLOCKED and ctx.open_children(t.id):
+        return False
     if action in SLA_ACTIONS:
         return sla.action_available(ctx.db, t, action, ctx.timers(t.id))
     return True
@@ -346,6 +374,67 @@ def create_ticket(db: Session, p: Principal, data: dict, source: str,
     return t, True
 
 
+# ================================================================ child tickets
+def can_add_child(p: Principal, t: Ticket) -> bool:
+    """The parent's own resolver, its team's managers and admins of its project split work into child tickets."""
+    if p.via == "CREDENTIAL" or p.is_product_user:
+        return False
+    return (t.resolver_id == p.id and p.is_resolver(t.team_id)) or p.manager_or_above(t)
+
+
+def children_block(ctx: Ctx, t: Ticket):
+    kids = ctx.open_children(t.id)
+    if kids:
+        key = ctx.project(t.project_id).key
+        raise AppError("children_open", "Finish its child tickets first: "
+                       + ", ".join(f"{key}-{c.number}" for c in kids) + ".")
+
+
+def create_child(db: Session, p: Principal, ref, data: dict, source: str) -> Ticket:
+    """A child ticket: same project, any active type (so any team), one level deep, raised by the caller."""
+    parent = load(db, p, ref, lock=True)
+    if not can_add_child(p, parent):
+        raise AppError("forbidden")
+    if parent.parent_id is not None:
+        raise AppError("invalid_state", "A child ticket cannot have child tickets of its own.")
+    if parent.status_code not in ACTIVE:
+        raise AppError("invalid_state", "Child tickets can be added only while the ticket is open.")
+    body = dict(data)
+    body["project_id"] = parent.project_id
+    if body.get("priority_id") in (None, ""):
+        body["priority_id"] = parent.priority_id
+    child, _ = create_ticket(db, p, body, source)
+    child.parent_id = parent.id
+    key = db.scalar(select(Project.key).where(Project.id == parent.project_id))
+    add_event(db, parent, "child_created", p.id, parent.status_code, parent.status_code,
+              note_text=f"{key}-{child.number}: {child.title}", visibility="INTERNAL", data={"child_id": child.id})
+    add_event(db, child, "parent_linked", p.id, child.status_code, child.status_code,
+              note_text=f"{key}-{parent.number}: {parent.title}", visibility="INTERNAL", data={"parent_id": parent.id})
+    parent.updated_at = clock.now()
+    db.flush()
+    return child
+
+
+def relatives(ctx: Ctx, p: Principal, t: Ticket, staff: bool) -> dict:
+    """Parent and children as small summaries; `visible` says whether the caller may open them."""
+    db = ctx.db
+
+    def brief(x: Ticket) -> dict:
+        st = ctx.statuses.get(x.status_code)
+        d = {"id": x.id, "number": ticket_number(ctx, x), "title": x.title,
+             "status": {"code": x.status_code, "name": st.name if st else x.status_code}, "visible": p.can_see(x)}
+        if staff:
+            res = ctx.user(x.resolver_id)
+            d["team"] = ctx.team(x.team_id).name
+            d["resolver"] = res.name if res else None
+        return d
+
+    out = {"parent": brief(db.get(Ticket, t.parent_id)) if t.parent_id else None,
+           "children": [brief(c) for c in db.scalars(select(Ticket).where(Ticket.parent_id == t.id)
+                                                     .order_by(Ticket.number))]}
+    return out
+
+
 # ================================================================ assignment primitive
 def apply_assignment(db: Session, t: Ticket, resolver_id: int, actor_id: int | None, event_type: str,
                      mode: str | None = None, note_text: str | None = None):
@@ -397,6 +486,8 @@ def perform(db: Session, p: Principal, ref, action: str, body: dict | None = Non
         if action == "reopen" and t.status_code == CLOSED:
             raise AppError("reopen_window_closed")
         raise AppError("invalid_state")
+    if action in CHILD_BLOCKED:
+        children_block(ctx, t)
     fn = _ACTIONS[action]
     fn(db, ctx, p, t, body)
     t.updated_at = clock.now()
@@ -649,7 +740,7 @@ def no_reply(db: Session) -> int:
         if asked + timedelta(days=settings.get(db, "ticket.requester_noreply_days", pid)) > now:
             continue
         t = db.scalar(select(Ticket).where(Ticket.id == tid).with_for_update(skip_locked=True))
-        if t is None or t.status_code != AWAITING:
+        if t is None or t.status_code != AWAITING or Ctx(db).open_children(t.id):
             continue
         _reject(db, Ctx(db), sysp, t, {"reason": "No reply from the requester in time."}, system_code="NO_REPLY")
         n += 1
@@ -674,7 +765,8 @@ def ticket_number(ctx: Ctx, t: Ticket) -> str:
     return f"{ctx.project(t.project_id).key}-{t.number}"
 
 
-def view(ctx: Ctx, p: Principal, t: Ticket, due: dict | None = None, with_actions: bool = True) -> dict:
+def view(ctx: Ctx, p: Principal, t: Ticket, due: dict | None = None, with_actions: bool = True,
+         with_relatives: bool = False) -> dict:
     staff = p.is_staff_on(t) if p.via != "CREDENTIAL" else False
     users = ctx.users([t.requester_id, t.resolver_id])
     st = ctx.statuses.get(t.status_code)
@@ -705,8 +797,11 @@ def view(ctx: Ctx, p: Principal, t: Ticket, due: dict | None = None, with_action
         })
     elif t.reject_reason_code:
         d["reject_reason_code"] = t.reject_reason_code
+    if with_relatives:  # one ticket: parent and children too (lists skip them)
+        d.update(relatives(ctx, p, t, staff))
     if with_actions:
         d["allowed_actions"] = allowed_actions(ctx, p, t)
+        d["can_add_child"] = (can_add_child(p, t) and t.parent_id is None and t.status_code in ACTIVE)
     return d
 
 
@@ -855,6 +950,7 @@ def list_tickets(db: Session, p: Principal, params: dict):
                           [Ticket.created_at.desc(), Ticket.id.desc()])
     ctx = Ctx(db)
     ctx.prefetch_timers([t.id for t in rows])
+    ctx.prefetch_open_children([t.id for t in rows])
     ctx.users([u for t in rows for u in (t.requester_id, t.resolver_id)])
     dues = sla.nearest_due_many(db, [t.id for t in rows])
     return [view(ctx, p, t, due=dues.get(t.id)) for t in rows], meta

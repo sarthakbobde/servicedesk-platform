@@ -7,7 +7,7 @@
   <div>
     <div class="eyebrow">{{ t.number }} · {{ t.type.name }}</div>
     <div class="ticket-title"><h1>{{ t.title }}</h1>{{ status_chip(t.status) }}</div>
-    <div class="sub">Raised by {{ t.requester.name if t.requester }} · {{ t.created_at|dt }}</div>
+    <div class="sub">Raised by {{ t.requester.name if t.requester }} · {{ t.created_at|dt }}{% if t.parent %} · Child of {% if t.parent.visible %}<a href="/tickets/{{ t.parent.id }}">{{ t.parent.number }}</a>{% else %}{{ t.parent.number }}{% endif %}{% endif %}</div>
   </div>
 </div>
 {% if error %}<p class="flash err" role="alert">{{ error }}</p>{% endif %}
@@ -42,6 +42,26 @@
       <h2>Description</h2>
       <div class="prose">{{ t.description }}</div>
     </section>
+
+    {% if t.children or t.can_add_child %}
+    {% set open_kids = t.children|selectattr('status.code', 'in', ['NEW','ASSIGNED','IN_PROGRESS','ON_HOLD','AWAITING_REQUESTER'])|list %}
+    <section class="card" aria-label="Child tickets">
+      <div class="card-head"><h2>Child tickets</h2>
+        {% if t.children %}<span class="muted small">{{ t.children|length - open_kids|length }} of {{ t.children|length }} finished</span>{% endif %}</div>
+      {% if t.children %}
+      <ul class="children">
+        {% for c in t.children %}
+        <li><span class="num">{% if c.visible %}<a href="/tickets/{{ c.id }}">{{ c.number }}</a>{% else %}{{ c.number }}{% endif %}</span>
+          <span class="ttl">{{ c.title }}</span>
+          {% if staff %}<span class="muted small">{{ c.team }}{% if c.resolver %} · {{ c.resolver }}{% endif %}</span>{% endif %}
+          {{ status_chip(c.status) }}</li>
+        {% endfor %}
+      </ul>
+      {% if open_kids and staff %}<p class="muted small" style="margin:12px 0 0">This ticket can be resolved, rejected or withdrawn once its child tickets are finished.</p>{% endif %}
+      {% else %}<p class="muted" style="margin:0">Split the work: a child ticket can go to another team and has its own SLA.</p>{% endif %}
+      {% if t.can_add_child %}<p style="margin:14px 0 0"><a class="btn sm" href="/tickets/new?parent={{ t.id }}">+ Add child ticket</a></p>{% endif %}
+    </section>
+    {% endif %}
 
     <section class="card" aria-label="History">
       <div class="card-head"><h2>Activity</h2><span class="muted small">Newest first</span></div>

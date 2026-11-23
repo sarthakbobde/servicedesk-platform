@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "macros.html" import csrf_field with context %}
-{% block title %}New ticket{% endblock %}
-{% block crumbs %}New ticket{% endblock %}
+{% block title %}{{ "Child ticket" if parent else "New ticket" }}{% endblock %}
+{% block crumbs %}{% if parent %}<a href="/tickets/{{ parent.id }}">{{ parent.number }}</a> / Child ticket{% else %}New ticket{% endif %}{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>New ticket</h1><div class="sub">Describe what you need. The team that owns the ticket type picks it up.</div></div></div>
+<div class="page-head"><div>{% if parent %}<h1>New child ticket</h1><div class="sub">Part of <a href="/tickets/{{ parent.id }}">{{ parent.number }} · {{ parent.title }}</a>. Choose the type of the team that should do this part. {{ parent.number }} can be resolved only when its child tickets are finished.</div>{% else %}<h1>New ticket</h1><div class="sub">Describe what you need. The team that owns the ticket type picks it up.</div>{% endif %}</div></div>
 <div style="max-width:760px">
 {% if not raise_projects %}<div class="panel empty">There is no project you can raise tickets in.</div>{% else %}
-{% if raise_projects|length > 1 %}
+{% if raise_projects|length > 1 and not parent %}
 <form method="get" action="/tickets/new" class="row filters">
   <label>Project <select name="project" data-autosubmit>{% for pr in raise_projects %}<option value="{{ pr.id }}" {% if pr.id == project_id %}selected{% endif %}>{{ pr.key }} · {{ pr.name }}</option>{% endfor %}</select></label>
   <noscript><button type="submit">Choose</button></noscript>
@@ -15,6 +15,7 @@
 <form method="post" action="/tickets/new" class="stack panel" data-once style="padding:24px">{{ csrf_field() }}
   <input type="hidden" name="project_id" value="{{ project_id }}">
   <input type="hidden" name="idempotency_key" value="{{ key }}">
+  {% if parent %}<input type="hidden" name="parent" value="{{ parent.id }}">{% endif %}
   <label for="type_id">Ticket type</label>
   <select id="type_id" name="type_id" required>
     {% for tt in types %}<option value="{{ tt.id }}" data-team="{{ tt.team.name }}" {% if values.type_id == tt.id|string %}selected{% endif %}>{{ tt.name }}</option>{% endfor %}
@@ -28,7 +29,7 @@
   <input id="title" name="title" type="text" maxlength="200" required value="{{ values.title or '' }}">
   <label for="description">Description</label>
   <textarea id="description" name="description" required maxlength="10000">{{ values.description or '' }}</textarea>
-  <p class="actions"><button class="primary" type="submit">Raise ticket</button><a class="btn" href="/tickets">Cancel</a></p>
+  <p class="actions"><button class="primary" type="submit">{{ "Create child ticket" if parent else "Raise ticket" }}</button><a class="btn" href="{{ '/tickets/' ~ parent.id if parent else '/tickets' }}">Cancel</a></p>
 </form>
 {% endif %}
 </div>

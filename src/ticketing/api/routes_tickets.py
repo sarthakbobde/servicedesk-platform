@@ -76,7 +76,7 @@ def raise_ticket(body: TicketIn, response: Response, p: Principal = Depends(pers
     t, created = tickets.create_ticket(db, p, body.model_dump(), source, idempotency_key)
     if not created:
         response.status_code = 200
-    return clean(tickets.view(tickets.Ctx(db), p, t))
+    return clean(tickets.view(tickets.Ctx(db), p, t, with_relatives=True))
 
 
 @router.get("/tickets", tags=["G6 Tickets"], summary="API-042 List within the caller's scope")
@@ -101,7 +101,7 @@ def ticket_counts(p: Principal = Depends(person), db: Session = Depends(get_db))
 @router.get("/tickets/{ref}", tags=["G6 Tickets"], summary="API-043 One ticket with allowed actions")
 def get_ticket(ref: str, p: Principal = Depends(person_or_product), db: Session = Depends(get_db)):
     t = tickets.load(db, p, ref)
-    return clean(tickets.view(tickets.Ctx(db), p, t))
+    return clean(tickets.view(tickets.Ctx(db), p, t, with_relatives=True))
 
 
 @router.get("/tickets/{ref}/events", tags=["G6 Tickets"], summary="API-044 History, newest first")
@@ -165,7 +165,7 @@ def guard(action: str, auth=person):
 
 def _act(db, p, ref, action, body: dict | None):
     t = tickets.perform(db, p, ref, action, body or {})
-    return clean(tickets.view(tickets.Ctx(db), p, t))
+    return clean(tickets.view(tickets.Ctx(db), p, t, with_relatives=True))
 
 
 G7 = "G7 Ticket actions"
@@ -234,6 +234,28 @@ def reassign(ref: str, body: ReassignIn, p: Principal = Depends(guard("reassign"
 @router.post("/tickets/{ref}/reopen", tags=[G7], summary="API-058 Back to the queue inside the reopen window")
 def reopen(ref: str, body: ReasonIn, p: Principal = Depends(guard("reopen", person_or_product)), db: Session = Depends(get_db)):
     return _act(db, p, ref, "reopen", body.model_dump())
+
+
+class ChildIn(BaseModel):
+    type_id: int = Field(description="Any active type of the parent's project; it decides the child's team")
+    priority_id: int | None = Field(None, description="The parent's priority when empty")
+    title: str = Field(max_length=1000)
+    description: str = Field(max_length=20000)
+
+
+def child_guard(ref: str, p: Principal = Depends(person), db: Session = Depends(get_db)) -> Principal:
+    """Visibility and role before body validation (404/403 before 422)."""
+    t = tickets.load(db, p, ref)
+    if not tickets.can_add_child(p, t):
+        raise AppError("forbidden")
+    return p
+
+
+@router.post("/tickets/{ref}/children", status_code=201, tags=[G7],
+             summary="API-111 Split work into a child ticket (one level, same project)")
+def create_child(ref: str, body: ChildIn, p: Principal = Depends(child_guard), db: Session = Depends(get_db)):
+    t = tickets.create_child(db, p, ref, body.model_dump(), "API" if p.via == "TOKEN" else "PORTAL")
+    return clean(tickets.view(tickets.Ctx(db), p, t, with_relatives=True))
 
 
 @router.post("/tickets/{ref}/priority", tags=[G7], summary="API-059 Change priority")
